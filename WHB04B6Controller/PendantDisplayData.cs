@@ -5,20 +5,31 @@ namespace WHB04B6Controller
     /// </summary>
     public enum JogMode
     {
-        None,
-        Continuous,
-        Step
+        Continuous = 0x00, // xxxx xx00
+        Step = 0x01,       // xxxx xx01
+        None = 0x02,       // xxxx xx1x
+        Reset = 0x40       // x1xx xxxx
+    }
+
+    /// <summary>
+    /// Coordinate system for the pendant
+    /// </summary>
+    public enum CoordinateSystem
+    {
+        XYZ = 0x00,    // 0xxx xxxx
+        X1Y1Z1 = 0x80  // 1xxx xxxx
     }
 
     /// <summary>
     /// Represents data to be displayed on the pendant
     /// </summary>
-    public class PendantDisplayData(decimal number1, decimal number2, decimal number3, JogMode jogMode)
+    public class PendantDisplayData(JogMode jogMode, CoordinateSystem coordinateSystem, decimal number1, decimal number2, decimal number3)
     {
         public decimal Number1 { get; } = ValidateNumber(number1, nameof(number1));
         public decimal Number2 { get; } = ValidateNumber(number2, nameof(number2));
         public decimal Number3 { get; } = ValidateNumber(number3, nameof(number3));
         public JogMode JogMode { get; } = jogMode;
+        public CoordinateSystem CoordinateSystem { get; } = coordinateSystem;
 
         public byte[] RawData => GenerateRawData();
 
@@ -28,7 +39,7 @@ namespace WHB04B6Controller
             {
                 throw new ArgumentOutOfRangeException(parameterName, value, "Absolute value must not exceed 65535.9999");
             }
-            
+
             return value;
         }
 
@@ -73,17 +84,24 @@ namespace WHB04B6Controller
             return new byte[] { byte0, byte1, byte2, byte3 };
         }
 
+        private byte GenerateControlByte()
+        {
+            return (byte)((byte)CoordinateSystem | (byte)JogMode);
+        }
+
         private byte[] GenerateRawData()
         {
+            byte controlByte = GenerateControlByte();
+
             byte[] number1Bytes = EncodeNumber(Number1);
             byte[] number2Bytes = EncodeNumber(Number2);
             byte[] number3Bytes = EncodeNumber(Number3);
 
-            // TODO: Add JogMode encoding
-            byte[] result = new byte[12]; // 3 numbers × 4 bytes each
-            Array.Copy(number1Bytes, 0, result, 0, 4);
-            Array.Copy(number2Bytes, 0, result, 4, 4);
-            Array.Copy(number3Bytes, 0, result, 8, 4);
+            byte[] result = new byte[13]; // 1 control byte + 3 numbers × 4 bytes each
+            result[0] = controlByte;
+            Array.Copy(number1Bytes, 0, result, 1, 4);
+            Array.Copy(number2Bytes, 0, result, 5, 4);
+            Array.Copy(number3Bytes, 0, result, 9, 4);
 
             return result;
         }
