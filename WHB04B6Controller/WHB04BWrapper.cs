@@ -76,8 +76,23 @@ namespace WHB04B6Controller
         {
             return value switch
             {
-                0 => KeyPressed.None,
-                >= 1 and <= 16 => (KeyPressed)value,
+                0x00 => KeyPressed.None,
+                0x01 => KeyPressed.Key1,
+                0x02 => KeyPressed.Key2,
+                0x03 => KeyPressed.Key3,
+                0x04 => KeyPressed.Key4,
+                0x05 => KeyPressed.Key5,
+                0x06 => KeyPressed.Key6,
+                0x07 => KeyPressed.Key7,
+                0x08 => KeyPressed.Key8,
+                0x09 => KeyPressed.Key9,
+                0x0A => KeyPressed.Key10,
+                0x0B => KeyPressed.Key11,
+                0x0C => KeyPressed.Key12,
+                0x0D => KeyPressed.Key13,
+                0x0E => KeyPressed.Key14,
+                0x0F => KeyPressed.Key15,
+                0x10 => KeyPressed.Key16,
                 _ => KeyPressed.Unknown
             };
         }
