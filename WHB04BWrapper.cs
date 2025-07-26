@@ -23,7 +23,7 @@ public class WHB04BWrapper : IDisposable
     private bool _initialized = false;
     private System.Timers.Timer? _pollingTimer;
     private byte[] _previousData = [];
-    private readonly Lock _lockObject = new();
+    private readonly object _lockObject = new();
     private IntPtr _dataInputBuffer;
     private IntPtr _inputLengthPtr;
 

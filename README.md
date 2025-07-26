@@ -1,13 +1,13 @@
 # WHB04B-6 CNC Pendant Controller
 
-A .NET 9 library and console application for interfacing with the WHB04B-6 wireless CNC pendant controller via USB.
+A .NET 8 library and console application for interfacing with the WHB04B-6 wireless CNC pendant controller via USB.
 
 ## Features
 
 - **USB Communication**: Direct communication with WHB04B-6 pendant through USB controller
 - **Real-time Input Processing**: Continuously polls pendant for button presses, dial positions, and jog wheel movements
 - **Display Output**: Send coordinate data and control information to the pendant's LCD display
-- **Modern C# Implementation**: Built with .NET 9, using latest C# features and best practices
+- **Modern C# Implementation**: Built with .NET 8, using latest C# features and best practices
 - **Exception Handling**: Comprehensive error handling with specific exception types for pendant operations
 
 ## Hardware Requirements
@@ -66,7 +66,7 @@ Send coordinate information with:
 
 ## Building
 
-Requires .NET 9 SDK:
+Requires .NET 8 SDK:
 
 ```bash
 dotnet build
@@ -86,7 +86,7 @@ The console application will:
 
 ## Dependencies
 
-- .NET 9.0
+- .NET 8.0
 - PHB04B.dll (native USB driver - must be in application directory)
 - Windows x86 platform (required for USB driver compatibility)
 
