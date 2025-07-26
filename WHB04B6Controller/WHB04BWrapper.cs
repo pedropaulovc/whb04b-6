@@ -4,6 +4,14 @@ using System.Timers;
 namespace WHB04B6Controller
 {
     /// <summary>
+    /// Windows API imports for getting console window handle
+    /// </summary>
+    internal static class WindowsApi
+    {
+        [DllImport("kernel32.dll")]
+        internal static extern IntPtr GetConsoleWindow();
+    }
+    /// <summary>
     /// Event arguments for pendant data changes
     /// </summary>
     public class PendantDataEventArgs : EventArgs
@@ -37,12 +45,28 @@ namespace WHB04B6Controller
 
         /// <summary>
         /// Initializes a new instance of the WHB04BWrapper class
-        /// Automatically calls XInit to initialize the controller and starts polling
+        /// Automatically calls XInit, opens the device, and starts polling
         /// </summary>
         public WHB04BWrapper()
         {
             PHB04BController.Xinit();
             _initialized = true;
+            
+            // Get console window handle and open the device
+            IntPtr consoleHandle = WindowsApi.GetConsoleWindow();
+            if (consoleHandle != IntPtr.Zero)
+            {
+                int result = PHB04BController.XOpen((int)consoleHandle);
+                if (result != 0)
+                {
+                    throw new InvalidOperationException($"Failed to open USB device. Error code: {result}");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("Could not get console window handle");
+            }
+            
             StartPolling();
         }
 
