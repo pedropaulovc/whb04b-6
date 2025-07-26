@@ -119,7 +119,7 @@ namespace WHB04B6Controller
         /// </summary>
         /// <param name="bufferSize">Size of buffer to allocate for reading</param>
         /// <returns>Data read from device, or null if error occurred</returns>
-        public byte[]? ReadData(int bufferSize = 16)
+        public byte[]? ReadData(int bufferSize = 8)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -138,9 +138,8 @@ namespace WHB04B6Controller
                 
                 if (result == 0)
                 {
-                    int actualLength = Marshal.ReadInt32(lengthPtr);
-                    byte[] data = new byte[actualLength];
-                    Marshal.Copy(dataBuffer, data, 0, actualLength);
+                    byte[] data = new byte[bufferSize];
+                    Marshal.Copy(dataBuffer, data, 0, bufferSize);
                     return data;
                 }
                 return null;
@@ -229,7 +228,7 @@ namespace WHB04B6Controller
         /// <summary>
         /// Internal method for reading data without disposal checks (used by polling)
         /// </summary>
-        private byte[]? ReadDataInternal(int bufferSize = 16)
+        private byte[]? ReadDataInternal(int bufferSize = 8)
         {
             if (bufferSize <= 0)
             {
@@ -246,9 +245,8 @@ namespace WHB04B6Controller
                 
                 if (result == 0)
                 {
-                    int actualLength = Marshal.ReadInt32(lengthPtr);
-                    byte[] data = new byte[actualLength];
-                    Marshal.Copy(dataBuffer, data, 0, actualLength);
+                    byte[] data = new byte[bufferSize];
+                    Marshal.Copy(dataBuffer, data, 0, bufferSize);
                     return data;
                 }
                 return null;
