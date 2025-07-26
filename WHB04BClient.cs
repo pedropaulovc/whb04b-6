@@ -4,15 +4,6 @@ using System.Timers;
 namespace WHB04B6Controller;
 
 /// <summary>
-/// Windows API imports for getting console window handle
-/// </summary>
-internal static partial class WindowsApi
-{
-    [LibraryImport("kernel32.dll")]
-    internal static partial IntPtr GetConsoleWindow();
-}
-
-/// <summary>
 /// High-level wrapper library for the WHB04B-6 CNC pendant controller
 /// Provides simplified APIs that translate low-level controller operations
 /// </summary>
@@ -59,32 +50,6 @@ public class WHB04BClient : IDisposable
     }
 
     /// <summary>
-    /// Sends data to the pendant device
-    /// </summary>
-    /// <param name="data">Data buffer to send</param>
-    public void SendData(byte[] data)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (data == null || data.Length == 0)
-        {
-            throw new ArgumentException("Data cannot be null or empty", nameof(data));
-        }
-
-        IntPtr lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
-        try
-        {
-            Marshal.WriteInt32(lengthPtr, data.Length);
-            int result = PHB04BLibrary.XSendOutput(data, lengthPtr);
-            PHB04BException.ThrowIfNotSuccess(result);
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(lengthPtr);
-        }
-    }
-
-    /// <summary>
     /// Sends display data to the pendant device
     /// </summary>
     /// <param name="displayData">Display data to send to pendant</param>
@@ -112,6 +77,32 @@ public class WHB04BClient : IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Sends data to the pendant device
+    /// </summary>
+    /// <param name="data">Data buffer to send</param>
+    private void SendData(byte[] data)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (data == null || data.Length == 0)
+        {
+            throw new ArgumentException("Data cannot be null or empty", nameof(data));
+        }
+
+        IntPtr lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
+        try
+        {
+            Marshal.WriteInt32(lengthPtr, data.Length);
+            int result = PHB04BLibrary.XSendOutput(data, lengthPtr);
+            PHB04BException.ThrowIfNotSuccess(result);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(lengthPtr);
+        }
     }
 
     /// <summary>

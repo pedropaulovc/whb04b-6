@@ -18,6 +18,7 @@ A .NET 8 library and console application for interfacing with the WHB04B-6 wirel
 
 ## Project Structure
 
+- `WHB04BClient.csproj` - Project file for .NET 8 application
 - `PHB04BLibrary.cs` - Low-level P/Invoke wrapper for the PHB04B.dll
 - `WHB04BClient.cs` - High-level managed client with automatic polling and event handling
 - `PendantInputData.cs` - Classes for parsing pendant input (buttons, dials, jog wheel)

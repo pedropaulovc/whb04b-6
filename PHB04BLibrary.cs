@@ -3,6 +3,15 @@ using System.Runtime.InteropServices;
 namespace WHB04B6Controller;
 
 /// <summary>
+/// Windows API imports for getting console window handle
+/// </summary>
+internal static partial class WindowsApi
+{
+    [LibraryImport("kernel32.dll")]
+    internal static partial IntPtr GetConsoleWindow();
+}
+
+/// <summary>
 /// PHB04B DLL wrapper class
 /// Contains methods to communicate with XHC wireless pendant through USB controller
 /// </summary>
