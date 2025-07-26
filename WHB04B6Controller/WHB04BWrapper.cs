@@ -32,6 +32,7 @@ namespace WHB04B6Controller
     /// </summary>
     public class WHB04BWrapper : IDisposable
     {
+        private const int BufferSize = 5;
         private bool _disposed = false;
         private bool _initialized = false;
         private System.Timers.Timer? _pollingTimer;
@@ -117,29 +118,23 @@ namespace WHB04B6Controller
         /// <summary>
         /// Reads data from the pendant device
         /// </summary>
-        /// <param name="bufferSize">Size of buffer to allocate for reading</param>
         /// <returns>Data read from device, or null if error occurred</returns>
-        public byte[]? ReadData(int bufferSize = 8)
+        public byte[]? ReadData()
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
 
-            if (bufferSize <= 0)
-            {
-                return null;
-            }
-
-            IntPtr dataBuffer = Marshal.AllocHGlobal(bufferSize);
+            IntPtr dataBuffer = Marshal.AllocHGlobal(BufferSize);
             IntPtr lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
             
             try
             {
-                Marshal.WriteInt32(lengthPtr, bufferSize);
+                Marshal.WriteInt32(lengthPtr, BufferSize);
                 int result = PHB04BController.XGetInput(dataBuffer, lengthPtr);
                 
                 if (result == 0)
                 {
-                    byte[] data = new byte[bufferSize];
-                    Marshal.Copy(dataBuffer, data, 0, bufferSize);
+                    byte[] data = new byte[BufferSize];
+                    Marshal.Copy(dataBuffer, data, 0, BufferSize);
                     return data;
                 }
                 return null;
@@ -228,25 +223,20 @@ namespace WHB04B6Controller
         /// <summary>
         /// Internal method for reading data without disposal checks (used by polling)
         /// </summary>
-        private byte[]? ReadDataInternal(int bufferSize = 8)
+        private byte[]? ReadDataInternal()
         {
-            if (bufferSize <= 0)
-            {
-                return null;
-            }
-
-            IntPtr dataBuffer = Marshal.AllocHGlobal(bufferSize);
+            IntPtr dataBuffer = Marshal.AllocHGlobal(BufferSize);
             IntPtr lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
             
             try
             {
-                Marshal.WriteInt32(lengthPtr, bufferSize);
+                Marshal.WriteInt32(lengthPtr, BufferSize);
                 int result = PHB04BController.XGetInput(dataBuffer, lengthPtr);
                 
                 if (result == 0)
                 {
-                    byte[] data = new byte[bufferSize];
-                    Marshal.Copy(dataBuffer, data, 0, bufferSize);
+                    byte[] data = new byte[BufferSize];
+                    Marshal.Copy(dataBuffer, data, 0, BufferSize);
                     return data;
                 }
                 return null;
