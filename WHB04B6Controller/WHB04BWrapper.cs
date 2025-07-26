@@ -201,7 +201,7 @@ namespace WHB04B6Controller
         }
 
         /// <summary>
-        /// Checks if the first 16 bytes of new data is different from the previous data
+        /// Checks if the new data is different from the previous data
         /// </summary>
         private bool HasDataChanged(byte[] newData)
         {
@@ -210,10 +210,12 @@ namespace WHB04B6Controller
                 return true;
             }
 
-            // Compare only the first 16 bytes
-            int bytesToCompare = Math.Min(16, Math.Min(_previousData.Length, newData.Length));
+            if (_previousData.Length != newData.Length)
+            {
+                return true;
+            }
 
-            for (int i = 0; i < bytesToCompare; i++)
+            for (int i = 0; i < newData.Length; i++)
             {
                 if (_previousData[i] != newData[i])
                 {
