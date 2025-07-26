@@ -25,7 +25,7 @@ cat PHB04B资料.zip.part* > PHB04B资料.zip
 
 Or on Windows:
 ```cmd
-copy /b PHB04B资料.zip.partaa+PHB04B资料.zip.partab+PHB04B资料.zip.partac+PHB04B资料.zip.partad+PHB04B资料.zip.partae PHB04B资料.zip
+cmd /c copy /b "PHB04B资料.zip.partaa"+"PHB04B资料.zip.partab"+"PHB04B资料.zip.partac"+"PHB04B资料.zip.partad"+"PHB04B资料.zip.partae" "PHB04B资料.zip"
 ```
 
 ## Copyright
