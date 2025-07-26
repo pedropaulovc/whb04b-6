@@ -1,5 +1,4 @@
-namespace WHB04B6Controller
-{
+namespace WHB04B6Controller;
     /// <summary>
     /// Represents the key pressed on the pendant
     /// </summary>
@@ -121,4 +120,3 @@ namespace WHB04B6Controller
             };
         }
     }
-}

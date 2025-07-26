@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace WHB04B6Controller
-{
+namespace WHB04B6Controller;
     /// <summary>
     /// PHB04B DLL wrapper class
     /// Contains methods to communicate with XHC wireless pendant through USB controller
@@ -50,4 +49,3 @@ namespace WHB04B6Controller
         [DllImport("PHB04B.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
         public static extern int XGetInput(IntPtr getBuffer, IntPtr length);
     }
-}

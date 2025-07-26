@@ -1,5 +1,4 @@
-namespace WHB04B6Controller
-{
+namespace WHB04B6Controller;
     /// <summary>
     /// Jog mode for the pendant
     /// </summary>
@@ -81,7 +80,7 @@ namespace WHB04B6Controller
             byte byte2 = (byte)(fracRaw & 0xFF);           // low-order fraction bits
             byte byte3 = (byte)(((fracRaw >> 8) & 0x7F) | signBit); // high-order fraction + sign
 
-            return new byte[] { byte0, byte1, byte2, byte3 };
+            return [byte0, byte1, byte2, byte3];
         }
 
         private byte GenerateControlByte()
@@ -106,4 +105,3 @@ namespace WHB04B6Controller
             return result;
         }
     }
-}

@@ -1,17 +1,15 @@
 using System.Runtime.InteropServices;
 using System.Timers;
 
-namespace WHB04B6Controller
-{
+namespace WHB04B6Controller;
     /// <summary>
     /// Windows API imports for getting console window handle
     /// </summary>
-    internal static class WindowsApi
+    internal static partial class WindowsApi
     {
-        [DllImport("kernel32.dll")]
-        internal static extern IntPtr GetConsoleWindow();
+        [LibraryImport("kernel32.dll")]
+        internal static partial IntPtr GetConsoleWindow();
     }
-
 
     /// <summary>
     /// High-level wrapper library for the WHB04B-6 CNC pendant controller
@@ -19,12 +17,12 @@ namespace WHB04B6Controller
     /// </summary>
     public class WHB04BWrapper : IDisposable
     {
-        private const int BufferSize = 5;
+        private const int InputBufferSizeBytes = 5;
         private bool _disposed = false;
         private bool _initialized = false;
         private System.Timers.Timer? _pollingTimer;
-        private byte[] _previousData = Array.Empty<byte>();
-        private readonly object _lockObject = new object();
+        private byte[] _previousData = [];
+        private readonly Lock _lockObject = new();
         private IntPtr _dataInputBuffer;
         private IntPtr _inputLengthPtr;
 
@@ -40,7 +38,7 @@ namespace WHB04B6Controller
         public WHB04BWrapper()
         {
             // Allocate buffers once
-            _dataInputBuffer = Marshal.AllocHGlobal(BufferSize);
+            _dataInputBuffer = Marshal.AllocHGlobal(InputBufferSizeBytes);
             _inputLengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
             
             PHB04BLibrary.Xinit();
@@ -91,10 +89,7 @@ namespace WHB04B6Controller
         /// <param name="displayData">Display data to send to pendant</param>
         public void SendDisplayData(PendantDisplayData displayData)
         {
-            if (displayData == null)
-            {
-                throw new ArgumentNullException(nameof(displayData));
-            }
+            ArgumentNullException.ThrowIfNull(displayData);
 
             SendData(displayData.RawData);
         }
@@ -170,12 +165,12 @@ namespace WHB04B6Controller
         /// </summary>
         private byte[] ReadDataInternal()
         {
-            Marshal.WriteInt32(_inputLengthPtr, BufferSize);
+            Marshal.WriteInt32(_inputLengthPtr, InputBufferSizeBytes);
             int result = PHB04BLibrary.XGetInput(_dataInputBuffer, _inputLengthPtr);
             PHB04BException.ThrowIfNotSuccess(result);
             
-            byte[] data = new byte[BufferSize];
-            Marshal.Copy(_dataInputBuffer, data, 0, BufferSize);
+            byte[] data = new byte[InputBufferSizeBytes];
+            Marshal.Copy(_dataInputBuffer, data, 0, InputBufferSizeBytes);
             return data;
         }
 
@@ -234,4 +229,3 @@ namespace WHB04B6Controller
             Dispose(false);
         }
     }
-}

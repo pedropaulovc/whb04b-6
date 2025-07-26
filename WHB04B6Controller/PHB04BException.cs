@@ -1,5 +1,4 @@
-namespace WHB04B6Controller
-{
+namespace WHB04B6Controller;
     /// <summary>
     /// Exception thrown when PHB04B operations fail
     /// </summary>
@@ -36,4 +35,3 @@ namespace WHB04B6Controller
             throw new PHB04BException(returnCode, message);
         }
     }
-}
