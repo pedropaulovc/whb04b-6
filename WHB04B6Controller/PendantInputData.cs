@@ -43,7 +43,7 @@ namespace WHB04B6Controller
     /// <summary>
     /// Event arguments for pendant data changes
     /// </summary>
-    public class PendantDataEventArgs : EventArgs
+    public class PendantInputData : EventArgs
     {
         public byte[] RawData { get; }
         public DateTime Timestamp { get; }
@@ -54,7 +54,7 @@ namespace WHB04B6Controller
         public DialPosition LeftDial => ParseLeftDial(RawData.Length > 3 ? RawData[3] : (byte)0);
         public int JogCountOffset => RawData.Length > 4 ? (sbyte)RawData[4] : 0;
 
-        public PendantDataEventArgs(byte[] data)
+        public PendantInputData(byte[] data)
         {
             RawData = data ?? throw new ArgumentNullException(nameof(data));
             

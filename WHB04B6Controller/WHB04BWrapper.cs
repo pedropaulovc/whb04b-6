@@ -31,7 +31,7 @@ namespace WHB04B6Controller
         /// <summary>
         /// Event raised when pendant data changes
         /// </summary>
-        public event EventHandler<PendantDataEventArgs>? DataChanged;
+        public event EventHandler<PendantInputData>? DataChanged;
 
         /// <summary>
         /// Initializes a new instance of the WHB04BWrapper class
@@ -167,7 +167,7 @@ namespace WHB04B6Controller
                     if (newData != null && HasDataChanged(newData))
                     {
                         _previousData = newData;
-                        DataChanged?.Invoke(this, new PendantDataEventArgs(newData));
+                        DataChanged?.Invoke(this, new PendantInputData(newData));
                     }
                 }
                 catch
