@@ -54,10 +54,7 @@ namespace WHB04B6Controller
             }
 
             int result = PHB04BController.XOpen((int)consoleHandle);
-            if (result != 0)
-            {
-                throw new InvalidOperationException($"Failed to open USB device. Error code: {result}");
-            }
+            PHB04BException.ThrowIfNotSuccess(result);
             
             StartPolling();
         }
@@ -66,14 +63,13 @@ namespace WHB04B6Controller
         /// Sends data to the pendant device
         /// </summary>
         /// <param name="data">Data buffer to send</param>
-        /// <returns>True if successful, false otherwise</returns>
-        public bool SendData(byte[] data)
+        public void SendData(byte[] data)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
 
             if (data == null || data.Length == 0)
             {
-                return false;
+                throw new ArgumentException("Data cannot be null or empty", nameof(data));
             }
 
             IntPtr lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
@@ -81,7 +77,7 @@ namespace WHB04B6Controller
             {
                 Marshal.WriteInt32(lengthPtr, data.Length);
                 int result = PHB04BController.XSendOutput(data, lengthPtr);
-                return result == 0;
+                PHB04BException.ThrowIfNotSuccess(result);
             }
             finally
             {
@@ -93,27 +89,24 @@ namespace WHB04B6Controller
         /// Sends display data to the pendant device
         /// </summary>
         /// <param name="displayData">Display data to send to pendant</param>
-        /// <returns>True if successful, false otherwise</returns>
-        public bool SendDisplayData(PendantDisplayData displayData)
+        public void SendDisplayData(PendantDisplayData displayData)
         {
             if (displayData == null)
             {
                 throw new ArgumentNullException(nameof(displayData));
             }
 
-            return SendData(displayData.RawData);
+            SendData(displayData.RawData);
         }
 
         /// <summary>
         /// Clears the pendant display by sending clear data twice
         /// </summary>
-        /// <returns>True if both sends are successful, false otherwise</returns>
-        public bool ClearDisplay()
+        public void ClearDisplay()
         {
             var clearData = new PendantDisplayData(JogMode.None, CoordinateSystem.XYZ, 0m, 0m, 0m);
-            bool firstSend = SendDisplayData(clearData);
-            bool secondSend = SendDisplayData(clearData);
-            return firstSend && secondSend;
+            SendDisplayData(clearData);
+            SendDisplayData(clearData);
         }
 
         /// <summary>
@@ -150,8 +143,8 @@ namespace WHB04B6Controller
             {
                 try
                 {
-                    byte[]? newData = ReadDataInternal();
-                    if (newData != null && HasDataChanged(newData))
+                    byte[] newData = ReadDataInternal();
+                    if (HasDataChanged(newData))
                     {
                         _previousData = newData;
                         DataChanged?.Invoke(this, new PendantInputData(newData));
@@ -193,18 +186,15 @@ namespace WHB04B6Controller
         /// <summary>
         /// Internal method for reading data without disposal checks (used by polling)
         /// </summary>
-        private byte[]? ReadDataInternal()
+        private byte[] ReadDataInternal()
         {
             Marshal.WriteInt32(_lengthPtr, BufferSize);
             int result = PHB04BController.XGetInput(_dataBuffer, _lengthPtr);
+            PHB04BException.ThrowIfNotSuccess(result);
             
-            if (result == 0)
-            {
-                byte[] data = new byte[BufferSize];
-                Marshal.Copy(_dataBuffer, data, 0, BufferSize);
-                return data;
-            }
-            return null;
+            byte[] data = new byte[BufferSize];
+            Marshal.Copy(_dataBuffer, data, 0, BufferSize);
+            return data;
         }
 
         /// <summary>
@@ -223,8 +213,19 @@ namespace WHB04B6Controller
 
                 if (_initialized)
                 {
-                    int result = PHB04BController.XClose();
-                    _initialized = false;
+                    try
+                    {
+                        int result = PHB04BController.XClose();
+                        PHB04BException.ThrowIfNotSuccess(result);
+                    }
+                    catch (PHB04BException)
+                    {
+                        // Suppress exceptions during disposal
+                    }
+                    finally
+                    {
+                        _initialized = false;
+                    }
                 }
                 
                 if (_dataBuffer != IntPtr.Zero)
