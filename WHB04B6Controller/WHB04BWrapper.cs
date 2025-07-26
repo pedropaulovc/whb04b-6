@@ -90,9 +90,9 @@ namespace WHB04B6Controller
                 0x0B => KeyPressed.Key11,
                 0x0C => KeyPressed.Key12,
                 0x0D => KeyPressed.Key13,
-                0x0E => KeyPressed.Key14,
-                0x0F => KeyPressed.Key15,
-                0x10 => KeyPressed.Key16,
+                0x10 => KeyPressed.Key14,
+                0x0E => KeyPressed.Key15,
+                0x0F => KeyPressed.Key16,
                 _ => KeyPressed.Unknown
             };
         }
