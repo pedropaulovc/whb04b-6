@@ -19,7 +19,7 @@ A .NET 8 library and console application for interfacing with the WHB04B-6 wirel
 ## Project Structure
 
 - `PHB04BLibrary.cs` - Low-level P/Invoke wrapper for the PHB04B.dll
-- `WHB04BWrapper.cs` - High-level managed wrapper with automatic polling and event handling
+- `WHB04BClient.cs` - High-level managed client with automatic polling and event handling
 - `PendantInputData.cs` - Classes for parsing pendant input (buttons, dials, jog wheel)
 - `PendantDisplayData.cs` - Classes for formatting display output data
 - `PHB04BException.cs` - Custom exception types for pendant operations
@@ -30,7 +30,7 @@ A .NET 8 library and console application for interfacing with the WHB04B-6 wirel
 ### Basic Example
 
 ```csharp
-using var controller = new WHB04BWrapper();
+using var controller = new WHB04BClient();
 
 // Subscribe to input events
 controller.DataChanged += (sender, e) =>

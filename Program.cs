@@ -14,7 +14,7 @@ Console.CancelKeyPress += (sender, e) =>
 
 try
 {
-    using var controller = new WHB04BWrapper();
+    using var controller = new WHB04BClient();
     Console.WriteLine("Controller initialized successfully.");
     Console.WriteLine("Listening for pendant data changes and sending display data...");
     Console.WriteLine("Press Ctrl+C to exit.");

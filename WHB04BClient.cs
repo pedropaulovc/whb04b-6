@@ -16,7 +16,7 @@ internal static partial class WindowsApi
 /// High-level wrapper library for the WHB04B-6 CNC pendant controller
 /// Provides simplified APIs that translate low-level controller operations
 /// </summary>
-public class WHB04BWrapper : IDisposable
+public class WHB04BClient : IDisposable
 {
     private const int InputBufferSizeBytes = 5;
     private bool _disposed = false;
@@ -33,10 +33,10 @@ public class WHB04BWrapper : IDisposable
     public event EventHandler<PendantInputData>? DataChanged;
 
     /// <summary>
-    /// Initializes a new instance of the WHB04BWrapper class
+    /// Initializes a new instance of the WHB04BClient class
     /// Automatically calls XInit, opens the device, and starts polling
     /// </summary>
-    public WHB04BWrapper()
+    public WHB04BClient()
     {
         // Allocate buffers once
         _dataInputBuffer = Marshal.AllocHGlobal(InputBufferSizeBytes);
@@ -106,7 +106,7 @@ public class WHB04BWrapper : IDisposable
     }
 
     /// <summary>
-    /// Disposes of the wrapper and closes the controller connection
+    /// Disposes of the client and closes the controller connection
     /// </summary>
     public void Dispose()
     {
@@ -225,7 +225,7 @@ public class WHB04BWrapper : IDisposable
     /// <summary>
     /// Finalizer to ensure resources are cleaned up
     /// </summary>
-    ~WHB04BWrapper()
+    ~WHB04BClient()
     {
         Dispose(false);
     }
