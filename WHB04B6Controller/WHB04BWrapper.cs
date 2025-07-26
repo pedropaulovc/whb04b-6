@@ -43,7 +43,7 @@ namespace WHB04B6Controller
             _dataInputBuffer = Marshal.AllocHGlobal(BufferSize);
             _inputLengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
             
-            PHB04BController.Xinit();
+            PHB04BLibrary.Xinit();
             _initialized = true;
             
             // Get console window handle and open the device
@@ -53,7 +53,7 @@ namespace WHB04B6Controller
                 throw new InvalidOperationException("Could not get console window handle");
             }
 
-            int result = PHB04BController.XOpen((int)consoleHandle);
+            int result = PHB04BLibrary.XOpen((int)consoleHandle);
             PHB04BException.ThrowIfNotSuccess(result);
             
             StartPolling();
@@ -76,7 +76,7 @@ namespace WHB04B6Controller
             try
             {
                 Marshal.WriteInt32(lengthPtr, data.Length);
-                int result = PHB04BController.XSendOutput(data, lengthPtr);
+                int result = PHB04BLibrary.XSendOutput(data, lengthPtr);
                 PHB04BException.ThrowIfNotSuccess(result);
             }
             finally
@@ -171,7 +171,7 @@ namespace WHB04B6Controller
         private byte[] ReadDataInternal()
         {
             Marshal.WriteInt32(_inputLengthPtr, BufferSize);
-            int result = PHB04BController.XGetInput(_dataInputBuffer, _inputLengthPtr);
+            int result = PHB04BLibrary.XGetInput(_dataInputBuffer, _inputLengthPtr);
             PHB04BException.ThrowIfNotSuccess(result);
             
             byte[] data = new byte[BufferSize];
@@ -197,7 +197,7 @@ namespace WHB04B6Controller
                 {
                     try
                     {
-                        int result = PHB04BController.XClose();
+                        int result = PHB04BLibrary.XClose();
                         PHB04BException.ThrowIfNotSuccess(result);
                     }
                     catch (PHB04BException)

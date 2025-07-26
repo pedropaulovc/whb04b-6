@@ -6,7 +6,7 @@ namespace WHB04B6Controller
     /// PHB04B DLL wrapper class
     /// Contains methods to communicate with XHC wireless pendant through USB controller
     /// </summary>
-    public class PHB04BController
+    public class PHB04BLibrary
     {
         /// <summary>
         /// Initialize the PHB04B USB controller
