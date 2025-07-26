@@ -22,7 +22,9 @@ try
     // Subscribe to data change events
     controller.DataChanged += (sender, e) =>
     {
-        string hexData = Convert.ToHexString(e.Data);
+        // Take only the first 16 bytes for display
+        byte[] dataToShow = e.Data.Length > 16 ? e.Data[..16] : e.Data;
+        string hexData = Convert.ToHexString(dataToShow);
         Console.WriteLine($"[{e.Timestamp:HH:mm:ss.fff}] Data changed: {hexData}");
     };
 
