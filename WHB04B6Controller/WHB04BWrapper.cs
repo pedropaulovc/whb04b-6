@@ -119,7 +119,7 @@ namespace WHB04B6Controller
         /// </summary>
         /// <param name="bufferSize">Size of buffer to allocate for reading</param>
         /// <returns>Data read from device, or null if error occurred</returns>
-        public byte[]? ReadData(int bufferSize = 64)
+        public byte[]? ReadData(int bufferSize = 16)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -229,7 +229,7 @@ namespace WHB04B6Controller
         /// <summary>
         /// Internal method for reading data without disposal checks (used by polling)
         /// </summary>
-        private byte[]? ReadDataInternal(int bufferSize = 64)
+        private byte[]? ReadDataInternal(int bufferSize = 16)
         {
             if (bufferSize <= 0)
             {
