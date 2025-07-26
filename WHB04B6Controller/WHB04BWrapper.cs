@@ -107,6 +107,21 @@ namespace WHB04B6Controller
         }
 
         /// <summary>
+        /// Sends display data to the pendant device
+        /// </summary>
+        /// <param name="displayData">Display data to send to pendant</param>
+        /// <returns>True if successful, false otherwise</returns>
+        public bool SendDisplayData(PendantDisplayData displayData)
+        {
+            if (displayData == null)
+            {
+                throw new ArgumentNullException(nameof(displayData));
+            }
+
+            return SendData(displayData.RawData);
+        }
+
+        /// <summary>
         /// Reads data from the pendant device
         /// </summary>
         /// <returns>Data read from device, or null if error occurred</returns>
