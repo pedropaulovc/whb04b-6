@@ -1,4 +1,4 @@
-﻿using WHB04B6Controller;
+using WHB04B6Controller;
 
 Console.WriteLine("WHB04B-6 USB CNC Remote Control Pendant Controller");
 Console.WriteLine("==================================================");
