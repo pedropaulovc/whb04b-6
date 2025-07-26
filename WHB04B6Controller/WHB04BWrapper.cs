@@ -1,7 +1,23 @@
 using System.Runtime.InteropServices;
+using System.Timers;
 
 namespace WHB04B6Controller
 {
+    /// <summary>
+    /// Event arguments for pendant data changes
+    /// </summary>
+    public class PendantDataEventArgs : EventArgs
+    {
+        public byte[] Data { get; }
+        public DateTime Timestamp { get; }
+
+        public PendantDataEventArgs(byte[] data)
+        {
+            Data = data;
+            Timestamp = DateTime.Now;
+        }
+    }
+
     /// <summary>
     /// High-level wrapper library for the WHB04B-6 CNC pendant controller
     /// Provides simplified APIs that translate low-level controller operations
@@ -10,15 +26,24 @@ namespace WHB04B6Controller
     {
         private bool _disposed = false;
         private bool _initialized = false;
+        private System.Timers.Timer? _pollingTimer;
+        private byte[]? _previousData;
+        private readonly object _lockObject = new object();
+
+        /// <summary>
+        /// Event raised when pendant data changes
+        /// </summary>
+        public event EventHandler<PendantDataEventArgs>? DataChanged;
 
         /// <summary>
         /// Initializes a new instance of the WHB04BWrapper class
-        /// Automatically calls XInit to initialize the controller
+        /// Automatically calls XInit to initialize the controller and starts polling
         /// </summary>
         public WHB04BWrapper()
         {
             PHB04BController.Xinit();
             _initialized = true;
+            StartPolling();
         }
 
         /// <summary>
@@ -113,6 +138,105 @@ namespace WHB04B6Controller
         }
 
         /// <summary>
+        /// Starts the background polling timer
+        /// </summary>
+        private void StartPolling()
+        {
+            _pollingTimer = new System.Timers.Timer(100); // 100ms interval
+            _pollingTimer.Elapsed += OnPollingTimerElapsed;
+            _pollingTimer.AutoReset = true;
+            _pollingTimer.Start();
+        }
+
+        /// <summary>
+        /// Handles the polling timer elapsed event
+        /// </summary>
+        private void OnPollingTimerElapsed(object? sender, ElapsedEventArgs e)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            lock (_lockObject)
+            {
+                try
+                {
+                    byte[]? newData = ReadDataInternal();
+                    if (newData != null && HasDataChanged(newData))
+                    {
+                        _previousData = newData;
+                        DataChanged?.Invoke(this, new PendantDataEventArgs(newData));
+                    }
+                }
+                catch
+                {
+                    // Silently ignore polling errors to prevent timer crashes
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks if the new data is different from the previous data
+        /// </summary>
+        private bool HasDataChanged(byte[] newData)
+        {
+            if (_previousData == null)
+            {
+                return true;
+            }
+
+            if (_previousData.Length != newData.Length)
+            {
+                return true;
+            }
+
+            for (int i = 0; i < newData.Length; i++)
+            {
+                if (_previousData[i] != newData[i])
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Internal method for reading data without disposal checks (used by polling)
+        /// </summary>
+        private byte[]? ReadDataInternal(int bufferSize = 64)
+        {
+            if (bufferSize <= 0)
+            {
+                return null;
+            }
+
+            IntPtr dataBuffer = Marshal.AllocHGlobal(bufferSize);
+            IntPtr lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
+            
+            try
+            {
+                Marshal.WriteInt32(lengthPtr, bufferSize);
+                int result = PHB04BController.XGetInput(dataBuffer, lengthPtr);
+                
+                if (result == 0)
+                {
+                    int actualLength = Marshal.ReadInt32(lengthPtr);
+                    byte[] data = new byte[actualLength];
+                    Marshal.Copy(dataBuffer, data, 0, actualLength);
+                    return data;
+                }
+                return null;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(dataBuffer);
+                Marshal.FreeHGlobal(lengthPtr);
+            }
+        }
+
+        /// <summary>
         /// Protected dispose method
         /// </summary>
         /// <param name="disposing">True if disposing managed resources</param>
@@ -120,6 +244,12 @@ namespace WHB04B6Controller
         {
             if (!_disposed)
             {
+                if (disposing)
+                {
+                    _pollingTimer?.Stop();
+                    _pollingTimer?.Dispose();
+                }
+
                 if (_initialized)
                 {
                     int result = PHB04BController.XClose();
