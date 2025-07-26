@@ -5,8 +5,7 @@ Console.WriteLine("==================================================");
 
 try
 {
-    Console.WriteLine("Initializing PHB04B controller...");
-    PHB04BController.Xinit();
+    using var controller = new WHB04BWrapper();
     Console.WriteLine("Controller initialized successfully.");
     
     Console.WriteLine("Press any key to exit...");
@@ -15,10 +14,4 @@ try
 catch (Exception ex)
 {
     Console.WriteLine($"Error: {ex.Message}");
-}
-finally
-{
-    Console.WriteLine("\nClosing connection...");
-    PHB04BController.XClose();
-    Console.WriteLine("Connection closed.");
 }

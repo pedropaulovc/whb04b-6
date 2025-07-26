@@ -1,2 +1,3 @@
 - commit often, while you are progressing in the code changes. push whenever you are done with a task.
 - always add curly braces to code blocks, even single line blocks
+- this is a modern .net 9 application so use common dotnet commands to build, test etc.
