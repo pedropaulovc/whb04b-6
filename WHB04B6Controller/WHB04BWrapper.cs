@@ -122,6 +122,18 @@ namespace WHB04B6Controller
         }
 
         /// <summary>
+        /// Clears the pendant display by sending clear data twice
+        /// </summary>
+        /// <returns>True if both sends are successful, false otherwise</returns>
+        public bool ClearDisplay()
+        {
+            var clearData = new PendantDisplayData(JogMode.None, CoordinateSystem.XYZ, 0m, 0m, 0m);
+            bool firstSend = SendDisplayData(clearData);
+            bool secondSend = SendDisplayData(clearData);
+            return firstSend && secondSend;
+        }
+
+        /// <summary>
         /// Reads data from the pendant device
         /// </summary>
         /// <returns>Data read from device, or null if error occurred</returns>

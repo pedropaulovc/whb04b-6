@@ -23,13 +23,12 @@ try
     // Subscribe to data change events
     controller.DataChanged += (sender, e) =>
     {
-        Console.WriteLine($"[RECEIVED] [{e.Timestamp:HH:mm:ss.fff}] Key1: {e.FirstKeyPressed,-12} | Key2: {e.SecondKeyPressed,-12} | RightDial: {e.RightDial,-9} | LeftDial: {e.LeftDial,-9} | Jog: {e.JogCountOffset,3}");
+        Console.WriteLine($"[RECEIVED] [{e.Timestamp:HH:mm:ss.fff}] Key1: {e.FirstKeyPressed,-12} | Key2: {e.SecondKeyPressed,-13} | RightDial: {e.RightDial,-9} | LeftDial: {e.LeftDial,-9} | Jog: {e.JogCountOffset,3}");
     };
 
     // Send initial zero state
-    var initialDisplayData = new PendantDisplayData(JogMode.None, CoordinateSystem.XYZ, 0m, 0m, 0m);
-    bool initialSuccess = controller.SendDisplayData(initialDisplayData);
-    Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] X={0m,+10:F4}, Y={0m,+10:F4}, Z={0m,+10:F4} | JogMode: {"None",-10} | CoordSys: {"XYZ",-6} | Success: {initialSuccess}");
+    bool initialSuccess = controller.ClearDisplay();
+    Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] ClearDisplay       | Success: {initialSuccess}");
 
     // Send sample display data periodically
     var timer = new System.Timers.Timer(10000); // Every 10 seconds
@@ -62,7 +61,7 @@ try
 
             // Send to pendant
             bool success = controller.SendDisplayData(displayData);
-            Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] X={x,+10:F4}, Y={y,+10:F4}, Z={z,+10:F4} | JogMode: {currentJogMode,-10} | CoordSys: {currentCoordinateSystem,-6} | Success: {success}");
+            Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] X={x,+10:F4}, Y={y,+10:F4}, Z={z,+10:F4} | JogMode: {currentJogMode,-11} | CoordSys: {currentCoordinateSystem,-9} | Success: {success}");
             
             cycleCount++;
         }
