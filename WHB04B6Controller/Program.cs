@@ -22,8 +22,8 @@ try
     // Subscribe to data change events
     controller.DataChanged += (sender, e) =>
     {
-        string hexData = Convert.ToHexString(e.Data);
-        Console.WriteLine($"[{e.Timestamp:HH:mm:ss.fff}] Data changed: {hexData}");
+        string hexData = Convert.ToHexString(e.RawData);
+        Console.WriteLine($"[{e.Timestamp:HH:mm:ss.fff}] Raw: {hexData} | Key1: {e.FirstKeyPressed} | Key2: {e.SecondKeyPressed} | RightDial: {e.RightDial} | LeftDial: {e.LeftDial} | Jog: {e.JogCountOffset}");
     };
 
     // Keep the application running until Ctrl+C is pressed
