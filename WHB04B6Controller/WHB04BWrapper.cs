@@ -63,23 +63,6 @@ namespace WHB04B6Controller
         }
 
         /// <summary>
-        /// Opens the USB controller device for communication
-        /// </summary>
-        /// <param name="parentWindowHandle">Handle of the parent window for receiving messages</param>
-        /// <returns>True if successful, false otherwise</returns>
-        public bool OpenDevice(int parentWindowHandle)
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-
-            int result = PHB04BController.XOpen(parentWindowHandle);
-            if (result == 0)
-            {
-                return true;
-            }
-            return false;
-        }
-
-        /// <summary>
         /// Sends data to the pendant device
         /// </summary>
         /// <param name="data">Data buffer to send</param>
@@ -131,29 +114,6 @@ namespace WHB04B6Controller
             bool firstSend = SendDisplayData(clearData);
             bool secondSend = SendDisplayData(clearData);
             return firstSend && secondSend;
-        }
-
-        /// <summary>
-        /// Reads data from the pendant device
-        /// </summary>
-        /// <returns>Data read from device, or null if error occurred</returns>
-        public byte[]? ReadData()
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-
-            lock (_lockObject)
-            {
-                Marshal.WriteInt32(_lengthPtr, BufferSize);
-                int result = PHB04BController.XGetInput(_dataBuffer, _lengthPtr);
-                
-                if (result == 0)
-                {
-                    byte[] data = new byte[BufferSize];
-                    Marshal.Copy(_dataBuffer, data, 0, BufferSize);
-                    return data;
-                }
-                return null;
-            }
         }
 
         /// <summary>
