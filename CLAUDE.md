@@ -1,0 +1,1 @@
+- commit often, while you are progressing in the code changes. push whenever you are done with a task.
