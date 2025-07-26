@@ -18,7 +18,7 @@ namespace WHB04B6Controller
         /// <summary>
         /// Close the connection to the USB controller
         /// </summary>
-        /// <returns>0 for success, non-zero for error (see error codes in documentation)</returns>
+        /// <returns>0 for success, error codes: 100 (USB device not open), 101 (USB download error), 102 (USB read error), 103 (Parameter error)</returns>
         [DllImport("PHB04B.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
         public static extern int XClose();
 
@@ -26,7 +26,7 @@ namespace WHB04B6Controller
         /// Open the USB controller device to establish communication
         /// </summary>
         /// <param name="handle">The handle of the parent window for receiving messages</param>
-        /// <returns>0 for success, non-zero for error (see error codes in documentation)</returns>
+        /// <returns>0 for success, error codes: 100 (USB device not open), 101 (USB download error), 102 (USB read error), 103 (Parameter error)</returns>
         [DllImport("PHB04B.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
         public static extern int XOpen(int handle);
 
@@ -35,7 +35,7 @@ namespace WHB04B6Controller
         /// </summary>
         /// <param name="sendBuffer">Buffer containing display data (max 59 ASCII characters for 4 lines)</param>
         /// <param name="length">Pointer to the length of data being sent</param>
-        /// <returns>0 for success, non-zero for error (see error codes in documentation)</returns>
+        /// <returns>0 for success, error codes: 100 (USB device not open), 101 (USB download error), 102 (USB read error), 103 (Parameter error)</returns>
         [DllImport("PHB04B.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
         public static extern int XSendOutput(byte[] sendBuffer, IntPtr length);
 
@@ -45,7 +45,7 @@ namespace WHB04B6Controller
         /// </summary>
         /// <param name="getBuffer">Buffer pointer to store received data</param>
         /// <param name="length">Pointer to the length of data to read</param>
-        /// <returns>0 for success, non-zero for error (see error codes in documentation)</returns>
+        /// <returns>0 for success, error codes: 100 (USB device not open), 101 (USB download error), 102 (USB read error), 103 (Parameter error)</returns>
         [DllImport("PHB04B.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
         public static extern int XGetInput(IntPtr getBuffer, IntPtr length);
     }
