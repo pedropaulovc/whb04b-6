@@ -32,8 +32,9 @@ namespace WHB04B6Controller
 
         /// <summary>
         /// Download information to the device display
+        /// Processes opaque byte streams for device communication
         /// </summary>
-        /// <param name="sendBuffer">Buffer containing display data (max 59 ASCII characters for 4 lines)</param>
+        /// <param name="sendBuffer">Buffer containing data to send</param>
         /// <param name="length">Pointer to the length of data being sent</param>
         /// <returns>0 for success, error codes: 100 (USB device not open), 101 (USB download error), 102 (USB read error), 103 (Parameter error)</returns>
         [DllImport("PHB04B.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
@@ -41,7 +42,7 @@ namespace WHB04B6Controller
 
         /// <summary>
         /// Read data from the pendant device
-        /// Data format: 5 bytes - [key1 data, key2 data, Ratio data, Axis data, MPG data]
+        /// Processes opaque byte streams for device communication
         /// </summary>
         /// <param name="getBuffer">Buffer pointer to store received data</param>
         /// <param name="length">Pointer to the length of data to read</param>
