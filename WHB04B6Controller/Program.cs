@@ -27,8 +27,8 @@ try
     };
 
     // Send initial zero state
-    bool initialSuccess = controller.ClearDisplay();
-    Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] ClearDisplay       | Success: {initialSuccess}");
+    controller.ClearDisplay();
+    Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] ClearDisplay       | Success: true");
 
     // Send sample display data periodically
     var timer = new System.Timers.Timer(10000); // Every 10 seconds
@@ -60,8 +60,8 @@ try
             );
 
             // Send to pendant
-            bool success = controller.SendDisplayData(displayData);
-            Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] X={x,+10:F4}, Y={y,+10:F4}, Z={z,+10:F4} | JogMode: {currentJogMode,-11} | CoordSys: {currentCoordinateSystem,-9} | Success: {success}");
+            controller.SendDisplayData(displayData);
+            Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] X={x,+10:F4}, Y={y,+10:F4}, Z={z,+10:F4} | JogMode: {currentJogMode,-11} | CoordSys: {currentCoordinateSystem,-9} | Success: true");
             
             cycleCount++;
         }

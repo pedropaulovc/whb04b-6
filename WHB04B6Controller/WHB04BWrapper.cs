@@ -23,10 +23,10 @@ namespace WHB04B6Controller
         private bool _disposed = false;
         private bool _initialized = false;
         private System.Timers.Timer? _pollingTimer;
-        private byte[]? _previousData;
+        private byte[] _previousData = Array.Empty<byte>();
         private readonly object _lockObject = new object();
-        private IntPtr _dataBuffer;
-        private IntPtr _lengthPtr;
+        private IntPtr _dataInputBuffer;
+        private IntPtr _inputLengthPtr;
 
         /// <summary>
         /// Event raised when pendant data changes
@@ -40,8 +40,8 @@ namespace WHB04B6Controller
         public WHB04BWrapper()
         {
             // Allocate buffers once
-            _dataBuffer = Marshal.AllocHGlobal(BufferSize);
-            _lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
+            _dataInputBuffer = Marshal.AllocHGlobal(BufferSize);
+            _inputLengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
             
             PHB04BController.Xinit();
             _initialized = true;
@@ -162,25 +162,7 @@ namespace WHB04B6Controller
         /// </summary>
         private bool HasDataChanged(byte[] newData)
         {
-            if (_previousData == null)
-            {
-                return true;
-            }
-
-            if (_previousData.Length != newData.Length)
-            {
-                return true;
-            }
-
-            for (int i = 0; i < newData.Length; i++)
-            {
-                if (_previousData[i] != newData[i])
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return !newData.SequenceEqual(_previousData);
         }
 
         /// <summary>
@@ -188,12 +170,12 @@ namespace WHB04B6Controller
         /// </summary>
         private byte[] ReadDataInternal()
         {
-            Marshal.WriteInt32(_lengthPtr, BufferSize);
-            int result = PHB04BController.XGetInput(_dataBuffer, _lengthPtr);
+            Marshal.WriteInt32(_inputLengthPtr, BufferSize);
+            int result = PHB04BController.XGetInput(_dataInputBuffer, _inputLengthPtr);
             PHB04BException.ThrowIfNotSuccess(result);
             
             byte[] data = new byte[BufferSize];
-            Marshal.Copy(_dataBuffer, data, 0, BufferSize);
+            Marshal.Copy(_dataInputBuffer, data, 0, BufferSize);
             return data;
         }
 
@@ -228,16 +210,16 @@ namespace WHB04B6Controller
                     }
                 }
                 
-                if (_dataBuffer != IntPtr.Zero)
+                if (_dataInputBuffer != IntPtr.Zero)
                 {
-                    Marshal.FreeHGlobal(_dataBuffer);
-                    _dataBuffer = IntPtr.Zero;
+                    Marshal.FreeHGlobal(_dataInputBuffer);
+                    _dataInputBuffer = IntPtr.Zero;
                 }
                 
-                if (_lengthPtr != IntPtr.Zero)
+                if (_inputLengthPtr != IntPtr.Zero)
                 {
-                    Marshal.FreeHGlobal(_lengthPtr);
-                    _lengthPtr = IntPtr.Zero;
+                    Marshal.FreeHGlobal(_inputLengthPtr);
+                    _inputLengthPtr = IntPtr.Zero;
                 }
                 
                 _disposed = true;
