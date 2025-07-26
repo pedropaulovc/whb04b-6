@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 
 namespace WHB04B6Controller
@@ -11,7 +10,6 @@ namespace WHB04B6Controller
     {
         private bool _disposed = false;
         private bool _initialized = false;
-        private int _deviceHandle;
 
         /// <summary>
         /// Initializes a new instance of the WHB04BWrapper class
@@ -30,13 +28,11 @@ namespace WHB04B6Controller
         /// <returns>True if successful, false otherwise</returns>
         public bool OpenDevice(int parentWindowHandle)
         {
-            if (_disposed)
-                throw new ObjectDisposedException(nameof(WHB04BWrapper));
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             int result = PHB04BController.XOpen(parentWindowHandle);
             if (result == 0)
             {
-                _deviceHandle = parentWindowHandle;
                 return true;
             }
             return false;
@@ -49,11 +45,12 @@ namespace WHB04B6Controller
         /// <returns>True if successful, false otherwise</returns>
         public bool SendData(byte[] data)
         {
-            if (_disposed)
-                throw new ObjectDisposedException(nameof(WHB04BWrapper));
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             if (data == null || data.Length == 0)
+            {
                 return false;
+            }
 
             IntPtr lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
             try
@@ -73,13 +70,14 @@ namespace WHB04B6Controller
         /// </summary>
         /// <param name="bufferSize">Size of buffer to allocate for reading</param>
         /// <returns>Data read from device, or null if error occurred</returns>
-        public byte[] ReadData(int bufferSize = 64)
+        public byte[]? ReadData(int bufferSize = 64)
         {
-            if (_disposed)
-                throw new ObjectDisposedException(nameof(WHB04BWrapper));
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             if (bufferSize <= 0)
+            {
                 return null;
+            }
 
             IntPtr dataBuffer = Marshal.AllocHGlobal(bufferSize);
             IntPtr lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
@@ -124,7 +122,7 @@ namespace WHB04B6Controller
             {
                 if (_initialized)
                 {
-                    PHB04BController.XClose();
+                    int result = PHB04BController.XClose();
                     _initialized = false;
                 }
                 _disposed = true;
