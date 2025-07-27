@@ -134,12 +134,14 @@ Percentage always matches chosen option in the right dial.
 Requires .NET 8 SDK:
 
 ```bash
+cd src
 dotnet build
 ```
 
 ## Running
 
 ```bash
+cd src
 dotnet run
 ```
 
