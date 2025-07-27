@@ -15,7 +15,7 @@ flowchart LR
     end
 
     CNC <--> DLL
-    DLL --> Pendant
+    DLL <--> Pendant
 ```
 
 ## Features
