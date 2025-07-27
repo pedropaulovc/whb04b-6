@@ -7,21 +7,15 @@ A .NET 8 library and console application for interfacing with the WHB04B-6 wirel
 ## Application
 ```mermaid
 flowchart LR
-graph LR
     CNC[CNC System]
-    DLL[PHB04B.DLL]
-    Client[WHB04BClient]
     Pendant[WHB04B Pendant]
+    
+    subgraph WHB04BClient
+        DLL[PHB04B.DLL]
+    end
 
     CNC <--> DLL
     DLL --> Pendant
-
-    subgraph WHB04BClient
-        DLL
-    end
-
-    CNC --> Client
-    Client --> Pendant
 ```
 
 ## Features
