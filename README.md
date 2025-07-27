@@ -1,6 +1,8 @@
 # WHB04B-6 CNC Pendant Controller
 
-A .NET 8 library and console application for interfacing with the WHB04B-6 wireless CNC pendant controller via USB.
+A .NET 8 library and console application for interfacing with the WHB04B-6 wireless CNC pendant remote controller via USB.
+
+![Key Mapping](doc/key-mapping.jpg)
 
 ## Features
 
@@ -36,7 +38,10 @@ using var controller = new WHB04BClient();
 // Subscribe to input events
 controller.DataChanged += (sender, e) =>
 {
-    Console.WriteLine($"Key: {e.FirstKeyPressed}, Jog: {e.JogCountOffset}");
+    Console.WriteLine($"[{e.Timestamp:HH:mm:ss.fff}] " +
+                     $"Key1: {e.FirstKeyPressed} | Key2: {e.SecondKeyPressed} | " +
+                     $"RightDial: {e.RightDial} | LeftDial: {e.LeftDial} | " +
+                     $"Jog: {e.JogCountOffset}");
 };
 
 // Send display data
@@ -53,17 +58,62 @@ controller.SendDisplayData(displayData);
 
 ### Input Data
 
-The pendant provides:
-- **Button Presses**: 16 numbered keys (Key1-Key16)
-- **Dial Positions**: Left and right rotary dials (7 positions each)
-- **Jog Wheel**: Signed offset values for incremental movement
+The pendant provides the following data through the `PendantInputData` event:
 
-### Display Data
+- **Timestamp** (`DateTime`) - When the data was received
+- **FirstKeyPressed** (`KeyPressed`) - Primary button press (`Key1` - `Key16`, `None`, `Unknown`)
+- **SecondKeyPressed** (`KeyPressed`) - Secondary button press(`Key1` - `Key16`, `None`, `Unknown`)
+- **RightDial** (`DialPosition`) - Right rotary dial position (`Position1` - `Position7`, `Unknown`)
+- **LeftDial** (`DialPosition`) - Left rotary dial position (`Position1` - `Position7`, `Unknown`)
+- **JogCountOffset** (`int`) - Jog wheel movement offset since last poll (`-128` to `+127`)
 
-Send coordinate information with:
-- **Coordinate Values**: X, Y, Z positions (range: ±65535.9999)
-- **Jog Mode**: Continuous, Step, None, or Reset
-- **Coordinate System**: XYZ or X1Y1Z1
+## Display Output
+
+### Coordinate Values
+Display accepts any values for X, Y and Z positions. Range: ±65535.9999
+
+![Coordinates Display](doc/coordinates.jpg)
+
+**⚠️ Important:** The pendant display will not update if the left dial is in `Position1` (Off). Ensure the left dial is set to Position2 or higher for display data to be visible.
+
+### Jog Mode
+Display accepts any one of 4 choices:
+
+#### None
+![Jog Mode None](doc/jog-mode-none.jpg)
+
+#### Continuous
+![Jog Mode Continuous](doc/jog-mode-continuous.jpg)
+
+#### Step
+![Jog Mode Step](doc/jog-mode-step.jpg)
+
+#### Reset
+![Jog Mode Reset](doc/jog-mode-reset.jpg)
+
+### Coordinate System
+Display accepts any one of 2 choices:
+
+#### X, Y, Z
+![Coordinate System XYZ](doc/coordinate-xyz.jpg)
+
+#### X1, Y1, Z1
+![Coordinate System X1Y1Z1](doc/coordinate-x1y1z1.jpg)
+
+#### Selected Axis
+Always matches the chosen option in the left dial.
+
+![Selected Axis](doc/predefined-asterisk.jpg)
+
+#### Primary (XYZ) / Secondary (ABC) Axis 
+Axis names shown always match chosen option in the left dial.
+
+![Primary/Secondary Axis](doc/predefined-axis.jpg)
+
+#### Percentage
+Percentage always matches chosen option in the right dial.
+
+![Percentage Display](doc/predefined-percentage.jpg)
 
 ## Building
 

@@ -6,37 +6,39 @@ namespace WHB04B6Controller;
 public enum KeyPressed
 {
     None = 0,
-    Key1 = 1,
-    Key2 = 2,
-    Key3 = 3,
-    Key4 = 4,
-    Key5 = 5,
-    Key6 = 6,
-    Key7 = 7,
-    Key8 = 8,
-    Key9 = 9,
-    Key10 = 10,
-    Key11 = 11,
-    Key12 = 12,
-    Key13 = 13,
-    Key14 = 14,
-    Key15 = 15,
-    Key16 = 16,
+    Key1 = 1,   // Reset
+    Key2 = 2,   // Stop
+    Key3 = 3,   // Start/Pause
+    Key4 = 4,   // Macro-1/Feed+
+    Key5 = 5,   // Macro-2/Feed-
+    Key6 = 6,   // Macro-3/Spindle+
+    Key7 = 7,   // Macro-4/Spindle-
+    Key8 = 8,   // Macro-5/M-Home
+    Key9 = 9,   // Macro-6/Safe-Z
+    Key10 = 10, // Macro-7/W Home
+    Key11 = 11, // Macro-8/S on/off
+    Key12 = 12, // Fn
+    Key13 = 13, // Macro-9/Probe Z
+    Key14 = 14, // Macro-10
+    Key15 = 15, // Continuous
+    Key16 = 16, // Step
     Unknown = 255
 }
 
 /// <summary>
 /// Represents the dial position on the pendant
+/// Left dial: axis selection (Off/X/Y/Z/A/B/C)
+/// Right dial: feed rate/spindle speed (0.001-Lead or 2%-100%)
 /// </summary>
 public enum DialPosition
 {
-    Position1 = 1,
-    Position2 = 2,
-    Position3 = 3,
-    Position4 = 4,
-    Position5 = 5,
-    Position6 = 6,
-    Position7 = 7,
+    Position1 = 1, // Left: Off,    Right: 0.001/2%
+    Position2 = 2, // Left: X,      Right: 0.01/5%
+    Position3 = 3, // Left: Y,      Right: 0.1/10%
+    Position4 = 4, // Left: Z,      Right: 1/30%
+    Position5 = 5, // Left: A,      Right: 60%
+    Position6 = 6, // Left: B,      Right: 100%
+    Position7 = 7, // Left: C,      Right: Lead
     Unknown = 255
 }
 
