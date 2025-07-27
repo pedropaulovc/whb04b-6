@@ -27,11 +27,11 @@ jobs:
     - name: Create ZIP Archive
       working-directory: src/bin/Release/net8.0/win-x86/publish
       run: |
-        zip -r whb04b-6-win-x86.zip .
+        zip -r whb04b-6-${{ github.ref_name }}-win-x86.zip .
         
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: src/bin/Release/net8.0/win-x86/publish/whb04b-6-win-x86.zip
+        files: src/bin/Release/net8.0/win-x86/publish/whb04b-6-${{ github.ref_name }}-win-x86.zip
         draft: false
         prerelease: false
