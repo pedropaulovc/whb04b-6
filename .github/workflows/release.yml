@@ -9,6 +9,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - uses: actions/checkout@v4
@@ -25,7 +27,7 @@ jobs:
     - name: Create ZIP Archive
       working-directory: src/bin/Release/net8.0/win-x86/publish
       run: |
-        zip -r ../whb04b-6-win-x86.zip .
+        zip -r whb04b-6-win-x86.zip .
         
     - name: Create Release
       uses: softprops/action-gh-release@v2
