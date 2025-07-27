@@ -1,8 +1,28 @@
 # WHB04B-6 CNC Pendant Controller
 
-A .NET 8 library and console application for interfacing with the WHB04B-6 wireless CNC pendant remote controller via USB.
+A .NET 8 library and console application for interfacing with the WHB04B-6 wireless CNC pendant remote controller via USB. Provides a strongly typed high level API that wraps the OEM `PHB04B.dll` library.
 
 ![Key Mapping](doc/key-mapping.jpg)
+
+## Application
+```mermaid
+flowchart LR
+graph LR
+    CNC[CNC System]
+    DLL[PHB04B.DLL]
+    Client[WHB04BClient]
+    Pendant[WHB04B Pendant]
+
+    CNC <--> DLL
+    DLL --> Pendant
+
+    subgraph WHB04BClient
+        DLL
+    end
+
+    CNC --> Client
+    Client --> Pendant
+```
 
 ## Features
 
@@ -94,10 +114,10 @@ Display accepts any one of 4 choices:
 ### Coordinate System
 Display accepts any one of 2 choices:
 
-#### X, Y, Z
+#### X, Y, Z / A, B, C
 ![Coordinate System XYZ](doc/coordinate-xyz.jpg)
 
-#### X1, Y1, Z1
+#### X1, Y1, Z1 / A1, B1, C1
 ![Coordinate System X1Y1Z1](doc/coordinate-x1y1z1.jpg)
 
 #### Selected Axis
@@ -138,8 +158,11 @@ The console application will:
 ## Dependencies
 
 - .NET 8.0
-- PHB04B.dll (native USB driver - must be in application directory)
+- `PHB04B.dll` (native USB driver - must be in application directory)
 - Windows x86 platform (required for USB driver compatibility)
+
+## Future changes
+- Replace `PHB04B.dll` dependency with direct HID driver implementation.
 
 ## License
 
