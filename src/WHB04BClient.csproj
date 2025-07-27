@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="vendor\PHB04B.dll">
+    <None Include="..\vendor\PHB04B.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>PHB04B.dll</Link>
     </None>
