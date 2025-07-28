@@ -163,3 +163,5 @@ The console application will:
 ## License
 
 See LICENSE file for details.
+
+**Note:** This project is not associated or endorsed by Chengdu Xinhecheng Technology Co.,Ltd.
