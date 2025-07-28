@@ -1,6 +1,6 @@
 # WHB04B-6 CNC Pendant Controller
 
-A .NET 8 library and console application for interfacing with the WHB04B-6 wireless CNC pendant remote controller via USB. Provides a strongly typed high level API that wraps the OEM `PHB04B.dll` library.
+A .NET 8 library and sample console application for interfacing with the WHB04B-6 wireless CNC pendant remote controller via USB. Provides a strongly typed high level API that wraps the OEM `PHB04B.dll` library.
 
 ![Key Mapping](doc/key-mapping.jpg)
 
