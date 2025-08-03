@@ -91,17 +91,41 @@ public class PendantDisplayData(JogMode jogMode, CoordinateSystem coordinateSyst
 
     private byte[] GenerateRawData()
     {
+        // Based on LinuxCNC HID protocol: [header(2), seed(1), displayFlags(1), row1(4), row2(4), row3(4), feedRate(2), spindleRate(2)]
+        // Total: 20 bytes, padded to 21 bytes for HID transmission (3 blocks of 7 bytes each)
+        
         byte controlByte = GenerateControlByte();
-
         byte[] number1Bytes = EncodeNumber(Number1);
         byte[] number2Bytes = EncodeNumber(Number2);
         byte[] number3Bytes = EncodeNumber(Number3);
 
-        byte[] result = new byte[13]; // 1 control byte + 3 numbers × 4 bytes each
-        result[0] = controlByte;
-        Array.Copy(number1Bytes, 0, result, 1, 4);
-        Array.Copy(number2Bytes, 0, result, 5, 4);
-        Array.Copy(number3Bytes, 0, result, 9, 4);
+        byte[] result = new byte[21]; // HID requires 21 bytes (3 blocks of 7 bytes)
+        
+        // Header (constant 0xfdfe)
+        result[0] = 0xfe;
+        result[1] = 0xfd;
+        
+        // Seed (constant 0xfe for compatibility)
+        result[2] = 0xfe;
+        
+        // Display mode flags
+        result[3] = controlByte;
+        
+        // Three coordinate values (4 bytes each)
+        Array.Copy(number1Bytes, 0, result, 4, 4);
+        Array.Copy(number2Bytes, 0, result, 8, 4);
+        Array.Copy(number3Bytes, 0, result, 12, 4);
+        
+        // Feed rate (2 bytes) - set to 0 for now
+        result[16] = 0;
+        result[17] = 0;
+        
+        // Spindle rate (2 bytes) - set to 0 for now  
+        result[18] = 0;
+        result[19] = 0;
+        
+        // Padding byte for 21-byte alignment
+        result[20] = 0;
 
         return result;
     }

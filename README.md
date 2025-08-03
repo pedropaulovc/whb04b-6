@@ -1,6 +1,6 @@
 # WHB04B-6 CNC Pendant Controller
 
-A .NET 8 library and sample console application for interfacing with the WHB04B-6 wireless CNC pendant remote controller via USB. Provides a strongly typed high level API that wraps the OEM `PHB04B.dll` library.
+A .NET 8 library and console application for interfacing with the WHB04B-6 wireless CNC pendant remote controller via USB. Provides a strongly typed high level API using direct HID communication (no longer requires vendor PHB04B.dll).
 
 ![Key Mapping](doc/key-mapping.jpg)
 
@@ -11,16 +11,16 @@ flowchart LR
     Pendant[WHB04B Pendant]
     
     subgraph WHB04BClient
-        DLL[PHB04B.DLL]
+        HID[HID Communication]
     end
 
-    CNC <--> DLL
-    DLL <--> Pendant
+    CNC <--> HID
+    HID <--> Pendant
 ```
 
 ## Features
 
-- **USB Communication**: Direct communication with WHB04B-6 pendant through USB controller
+- **Direct HID Communication**: Native USB HID communication with WHB04B-6 pendant (no vendor DLL required)
 - **Real-time Input Processing**: Continuously polls pendant for button presses, dial positions, and jog wheel movements
 - **Display Output**: Send coordinate data and control information to the pendant's LCD display
 - **Modern C# Implementation**: Built with .NET 8, using latest C# features and best practices
@@ -30,16 +30,16 @@ flowchart LR
 
 - WHB04B-6 wireless CNC pendant
 - USB receiver/controller for the pendant
-- Windows operating system (required for USB driver)
+- Cross-platform compatible (Windows, Linux, macOS)
 
 ## Project Structure
 
 - `WHB04BClient.csproj` - Project file for .NET 8 application
-- `PHB04BLibrary.cs` - Low-level P/Invoke wrapper for the PHB04B.dll
+- `HidCommunication.cs` - Direct HID communication implementation using HidSharp library
 - `WHB04BClient.cs` - High-level managed client with automatic polling and event handling
 - `PendantInputData.cs` - Classes for parsing pendant input (buttons, dials, jog wheel)
 - `PendantDisplayData.cs` - Classes for formatting display output data
-- `PHB04BException.cs` - Custom exception types for pendant operations
+- `HidCommunicationException.cs` - Custom exception types for HID communication operations
 - `Program.cs` - Console application demonstrating library usage
 
 ## Usage
@@ -154,11 +154,15 @@ The console application will:
 ## Dependencies
 
 - .NET 8.0
-- `PHB04B.dll` (native USB driver - must be in application directory)
-- Windows x86 platform (required for USB driver compatibility)
+- HidSharp NuGet package (cross-platform HID library)
 
-## Future changes
-- Replace `PHB04B.dll` dependency with direct HID driver implementation.
+## Changes Made
+
+- ✅ Replaced `PHB04B.dll` dependency with direct HID communication using HidSharp
+- ✅ Updated input packet parsing to handle 8-byte HID packets (vs 5-byte vendor format)  
+- ✅ Updated output packet generation to create 21-byte HID compatible format
+- ✅ Mapped all button key codes to match LinuxCNC implementation exactly
+- ✅ Cross-platform compatibility (no longer Windows-only)
 
 ## License
 
