@@ -1,66 +1,138 @@
-using System.Runtime.InteropServices;
+using HidSharp;
 
 namespace WHB04B6Controller;
 
 /// <summary>
-/// Windows API imports for getting console window handle
+/// Direct HID communication with WHB04B-6 pendant
+/// Replaces vendor PHB04B.dll with direct USB HID communication
+/// Based on LinuxCNC xhc-whb04b-6 implementation
 /// </summary>
-internal static partial class WindowsApi
+internal class HidCommunication : IDisposable
 {
-    [LibraryImport("kernel32.dll")]
-    internal static partial IntPtr GetConsoleWindow();
+    private const int VendorId = 0x10ce;
+    private const int ProductId = 0xeb93;
+    private const int InputPacketSize = 8;
+    private const int OutputBlockSize = 8; // HidSharp includes report ID in the buffer
+    
+    private HidDevice? _device;
+    private HidStream? _stream;
+    private bool _disposed = false;
+    
+    /// <summary>
+    /// Initialize and open the HID device
+    /// </summary>
+    public bool Initialize()
+    {
+        try
+        {
+            _device = DeviceList.Local.GetHidDevices(VendorId, ProductId).FirstOrDefault();
+            if (_device == null)
+            {
+                return false;
+            }
+            
+            _stream = _device.Open();
+            return _stream != null;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Close the HID device connection
+    /// </summary>
+    public void Close()
+    {
+        _stream?.Close();
+        _stream = null;
+        _device = null;
+    }
+    
+    /// <summary>
+    /// Read input data from the pendant
+    /// Expected packet structure: [0x04, random, button1, button2, feedDial, axisDial, jogDelta, checksum]
+    /// </summary>
+    /// <param name="buffer">Buffer to store received data (must be at least 8 bytes)</param>
+    /// <returns>Number of bytes read, or -1 on error</returns>
+    public int ReadInput(byte[] buffer)
+    {
+        if (_stream == null || buffer.Length < InputPacketSize)
+        {
+            return -1;
+        }
+        
+        try
+        {
+            _stream.ReadTimeout = 100; // 100ms timeout
+            var result = _stream.Read(buffer, 0, InputPacketSize);
+            return result;
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+    
+    /// <summary>
+    /// Send display data to the pendant
+    /// Data is sent in 8-byte blocks (including report ID 0x06)
+    /// Format: [reportId=0x06, data0, data1, data2, data3, data4, data5, data6]
+    /// </summary>
+    /// <param name="data">Data to send (21 bytes total, sent as 3 blocks of 7 bytes each)</param>
+    /// <returns>True if successful</returns>
+    public bool SendOutput(byte[] data)
+    {
+        if (_stream == null || data.Length != 21) // Must be exactly 21 bytes (3 blocks of 7 bytes)
+        {
+            return false;
+        }
+        
+        try
+        {
+            // Send data in 7-byte chunks, each prefixed with report ID 0x06
+            for (int i = 0; i < data.Length; i += 7)
+            {
+                var block = new byte[OutputBlockSize]; // 8 bytes total
+                block[0] = 0x06; // Report ID
+                
+                int bytesToCopy = Math.Min(7, data.Length - i);
+                Array.Copy(data, i, block, 1, bytesToCopy);
+                
+                _stream.Write(block, 0, OutputBlockSize);
+            }
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Check if device is connected and ready
+    /// </summary>
+    public bool IsConnected => _stream != null;
+    
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            Close();
+            _disposed = true;
+        }
+    }
 }
 
 /// <summary>
-/// PHB04B DLL wrapper class
-/// Contains methods to communicate with XHC wireless pendant through USB controller
+/// Legacy error codes for compatibility with existing code
 /// </summary>
-internal partial class PHB04BLibrary
+internal static class ErrorCodes
 {
-    /// <summary>
-    /// Initialize the PHB04B USB controller
-    /// Must be called before any other functions
-    /// </summary>
-    [LibraryImport("PHB04B.dll")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
-    internal static partial void Xinit();
-
-    /// <summary>
-    /// Close the connection to the USB controller
-    /// </summary>
-    /// <returns>0 for success, error codes: 100 (USB device not open), 101 (USB download error), 102 (USB read error), 103 (Parameter error)</returns>
-    [LibraryImport("PHB04B.dll")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
-    internal static partial int XClose();
-
-    /// <summary>
-    /// Open the USB controller device to establish communication
-    /// </summary>
-    /// <param name="handle">The handle of the parent window for receiving messages</param>
-    /// <returns>0 for success, error codes: 100 (USB device not open), 101 (USB download error), 102 (USB read error), 103 (Parameter error)</returns>
-    [LibraryImport("PHB04B.dll")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
-    internal static partial int XOpen(int handle);
-
-    /// <summary>
-    /// Download information to the device display
-    /// Processes opaque byte streams for device communication
-    /// </summary>
-    /// <param name="sendBuffer">Buffer containing data to send</param>
-    /// <param name="length">Pointer to the length of data being sent</param>
-    /// <returns>0 for success, error codes: 100 (USB device not open), 101 (USB download error), 102 (USB read error), 103 (Parameter error)</returns>
-    [LibraryImport("PHB04B.dll")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
-    internal static partial int XSendOutput([In] byte[] sendBuffer, IntPtr length);
-
-    /// <summary>
-    /// Read data from the pendant device
-    /// Processes opaque byte streams for device communication
-    /// </summary>
-    /// <param name="getBuffer">Buffer pointer to store received data</param>
-    /// <param name="length">Pointer to the length of data to read</param>
-    /// <returns>0 for success, error codes: 100 (USB device not open), 101 (USB download error), 102 (USB read error), 103 (Parameter error)</returns>
-    [LibraryImport("PHB04B.dll")]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
-    internal static partial int XGetInput(IntPtr getBuffer, IntPtr length);
+    public const int Success = 0;
+    public const int UsbDeviceNotOpen = 100;
+    public const int UsbDownloadError = 101;
+    public const int UsbReadError = 102;
+    public const int ParameterError = 103;
 }
