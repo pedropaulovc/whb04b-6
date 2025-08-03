@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Timers;
 
 namespace WHB04B6Controller;
@@ -9,14 +8,13 @@ namespace WHB04B6Controller;
 /// </summary>
 public class WHB04BClient : IDisposable
 {
-    private const int InputBufferSizeBytes = 5;
+    private const int InputBufferSizeBytes = 8;
     private bool _disposed = false;
     private bool _initialized = false;
     private System.Timers.Timer? _pollingTimer;
     private byte[] _previousData = [];
     private readonly object _lockObject = new();
-    private IntPtr _dataInputBuffer;
-    private IntPtr _inputLengthPtr;
+    private HidCommunication? _hidDevice;
 
     /// <summary>
     /// Event raised when pendant data changes
@@ -25,27 +23,18 @@ public class WHB04BClient : IDisposable
 
     /// <summary>
     /// Initializes a new instance of the WHB04BClient class
-    /// Automatically calls XInit, opens the device, and starts polling
+    /// Automatically opens the HID device and starts polling
     /// </summary>
     public WHB04BClient()
     {
-        // Allocate buffers once
-        _dataInputBuffer = Marshal.AllocHGlobal(InputBufferSizeBytes);
-        _inputLengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
-            
-        PHB04BLibrary.Xinit();
-        _initialized = true;
-            
-        // Get console window handle and open the device
-        IntPtr consoleHandle = WindowsApi.GetConsoleWindow();
-        if (consoleHandle == IntPtr.Zero)
+        _hidDevice = new HidCommunication();
+        
+        if (!_hidDevice.Initialize())
         {
-            throw new InvalidOperationException("Could not get console window handle");
+            throw new InvalidOperationException("Could not initialize HID device. Ensure WHB04B-6 pendant is connected.");
         }
-
-        int result = PHB04BLibrary.XOpen((int)consoleHandle);
-        PHB04BException.ThrowIfNotSuccess(result);
-            
+        
+        _initialized = true;
         StartPolling();
     }
 
@@ -92,16 +81,18 @@ public class WHB04BClient : IDisposable
             throw new ArgumentException("Data cannot be null or empty", nameof(data));
         }
 
-        IntPtr lengthPtr = Marshal.AllocHGlobal(Marshal.SizeOf<int>());
-        try
+        if (_hidDevice == null || !_hidDevice.IsConnected)
         {
-            Marshal.WriteInt32(lengthPtr, data.Length);
-            int result = PHB04BLibrary.XSendOutput(data, lengthPtr);
-            PHB04BException.ThrowIfNotSuccess(result);
+            throw new InvalidOperationException("HID device is not connected");
         }
-        finally
+
+        // Pad data to 21 bytes if necessary (3 blocks of 7 bytes each)
+        byte[] paddedData = new byte[21];
+        Array.Copy(data, 0, paddedData, 0, Math.Min(data.Length, 21));
+        
+        if (!_hidDevice.SendOutput(paddedData))
         {
-            Marshal.FreeHGlobal(lengthPtr);
+            throw new InvalidOperationException("Failed to send data to HID device");
         }
     }
 
@@ -157,12 +148,19 @@ public class WHB04BClient : IDisposable
     /// </summary>
     private byte[] ReadDataInternal()
     {
-        Marshal.WriteInt32(_inputLengthPtr, InputBufferSizeBytes);
-        int result = PHB04BLibrary.XGetInput(_dataInputBuffer, _inputLengthPtr);
-        PHB04BException.ThrowIfNotSuccess(result);
-            
+        if (_hidDevice == null || !_hidDevice.IsConnected)
+        {
+            return new byte[InputBufferSizeBytes];
+        }
+
         byte[] data = new byte[InputBufferSizeBytes];
-        Marshal.Copy(_dataInputBuffer, data, 0, InputBufferSizeBytes);
+        int bytesRead = _hidDevice.ReadInput(data);
+        
+        if (bytesRead <= 0)
+        {
+            return new byte[InputBufferSizeBytes]; // Return empty array on read failure
+        }
+            
         return data;
     }
 
@@ -184,10 +182,9 @@ public class WHB04BClient : IDisposable
             {
                 try
                 {
-                    int result = PHB04BLibrary.XClose();
-                    PHB04BException.ThrowIfNotSuccess(result);
+                    _hidDevice?.Close();
                 }
-                catch (PHB04BException)
+                catch
                 {
                     // Suppress exceptions during disposal
                 }
@@ -196,18 +193,9 @@ public class WHB04BClient : IDisposable
                     _initialized = false;
                 }
             }
-                
-            if (_dataInputBuffer != IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(_dataInputBuffer);
-                _dataInputBuffer = IntPtr.Zero;
-            }
-                
-            if (_inputLengthPtr != IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(_inputLengthPtr);
-                _inputLengthPtr = IntPtr.Zero;
-            }
+            
+            _hidDevice?.Dispose();
+            _hidDevice = null;
                 
             _disposed = true;
         }
