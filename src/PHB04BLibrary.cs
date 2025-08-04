@@ -77,8 +77,8 @@ internal class HidCommunication : IDisposable
     
     /// <summary>
     /// Send display data to the pendant
+    /// Uses HID SetFeature reports to send data (similar to libusb_control_transfer)
     /// Data is sent in 8-byte blocks (including report ID 0x06)
-    /// Format: [reportId=0x06, data0, data1, data2, data3, data4, data5, data6]
     /// </summary>
     /// <param name="data">Data to send (21 bytes total, sent as 3 blocks of 7 bytes each)</param>
     /// <returns>True if successful</returns>
@@ -91,7 +91,7 @@ internal class HidCommunication : IDisposable
         
         try
         {
-            // Send data in 7-byte chunks, each prefixed with report ID 0x06
+            // Send data in 7-byte chunks using SetFeature (similar to libusb control transfer)
             for (int i = 0; i < data.Length; i += 7)
             {
                 var block = new byte[OutputBlockSize]; // 8 bytes total
@@ -100,12 +100,15 @@ internal class HidCommunication : IDisposable
                 int bytesToCopy = Math.Min(7, data.Length - i);
                 Array.Copy(data, i, block, 1, bytesToCopy);
                 
-                _stream.Write(block, 0, OutputBlockSize);
+                // Use SetFeature instead of Write - this matches libusb_control_transfer behavior
+                _stream.SetFeature(block);
             }
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            // Log the exception for debugging
+            System.Diagnostics.Debug.WriteLine($"SendOutput failed: {ex.Message}");
             return false;
         }
     }
