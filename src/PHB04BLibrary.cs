@@ -25,24 +25,83 @@ internal class HidCommunication : IDisposable
     {
         try
         {
-            _device = DeviceList.Local.GetHidDevices(VendorId, ProductId).FirstOrDefault();
-            if (_device == null)
+            Console.WriteLine("DEBUG: Searching for HID devices...");
+            
+            // First, list all HID devices to see what's available
+            var allDevices = DeviceList.Local.GetHidDevices().ToList();
+            Console.WriteLine($"DEBUG: Found {allDevices.Count} total HID devices");
+            
+            // Look for our specific device
+            var targetDevices = allDevices.Where(d => d.VendorID == VendorId && d.ProductID == ProductId).ToList();
+            Console.WriteLine($"DEBUG: Found {targetDevices.Count} matching WHB04B-6 devices");
+            
+            if (targetDevices.Count == 0)
             {
                 Console.WriteLine("DEBUG: WHB04B-6 device not found");
+                Console.WriteLine("DEBUG: Available devices:");
+                foreach (var dev in allDevices.Take(10)) // Show first 10 devices
+                {
+                    try
+                    {
+                        Console.WriteLine($"DEBUG:   VID: 0x{dev.VendorID:X4}, PID: 0x{dev.ProductID:X4}, Path: {dev.DevicePath}");
+                    }
+                    catch
+                    {
+                        Console.WriteLine($"DEBUG:   VID: 0x{dev.VendorID:X4}, PID: 0x{dev.ProductID:X4}, Path: <error reading path>");
+                    }
+                }
                 return false;
             }
             
-            Console.WriteLine($"DEBUG: Found device: {_device.GetFriendlyName()}");
-            Console.WriteLine($"DEBUG: Max input report length: {_device.GetMaxInputReportLength()}");
-            Console.WriteLine($"DEBUG: Max output report length: {_device.GetMaxOutputReportLength()}");
-            Console.WriteLine($"DEBUG: Max feature report length: {_device.GetMaxFeatureReportLength()}");
+            _device = targetDevices.First();
+            Console.WriteLine($"DEBUG: Selected device path: {_device.DevicePath}");
             
+            // Try to get device info before opening
+            try
+            {
+                Console.WriteLine($"DEBUG: Device VID: 0x{_device.VendorID:X4}, PID: 0x{_device.ProductID:X4}");
+                // Console.WriteLine($"DEBUG: Device can open: {_device.CanOpen}"); // Property not available in this version
+                Console.WriteLine($"DEBUG: Device friendly name: {_device.GetFriendlyName()}");
+            }
+            catch (Exception infoEx)
+            {
+                Console.WriteLine($"DEBUG: Error getting device info: {infoEx.Message}");
+                Console.WriteLine($"DEBUG: This might be a permissions issue. Try running as administrator.");
+            }
+            
+            // Try to get report lengths before opening
+            try
+            {
+                Console.WriteLine($"DEBUG: Max input report length: {_device.GetMaxInputReportLength()}");
+                Console.WriteLine($"DEBUG: Max output report length: {_device.GetMaxOutputReportLength()}");
+                Console.WriteLine($"DEBUG: Max feature report length: {_device.GetMaxFeatureReportLength()}");
+            }
+            catch (Exception reportEx)
+            {
+                Console.WriteLine($"DEBUG: Error getting report lengths: {reportEx.Message}");
+            }
+            
+            Console.WriteLine("DEBUG: Attempting to open device...");
             _stream = _device.Open();
-            return _stream != null;
+            if (_stream != null)
+            {
+                Console.WriteLine("DEBUG: Device opened successfully");
+                return true;
+            }
+            else
+            {
+                Console.WriteLine("DEBUG: Failed to open device (returned null)");
+                return false;
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"DEBUG: Initialize failed: {ex.Message}");
+            Console.WriteLine($"DEBUG: Exception type: {ex.GetType().Name}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"DEBUG: Inner exception: {ex.InnerException.Message}");
+            }
             return false;
         }
     }
