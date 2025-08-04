@@ -27,10 +27,10 @@ public class WHB04BClient : IDisposable
     /// Initializes a new instance of the WHB04BClient class
     /// Automatically opens the HID device and starts polling
     /// </summary>
-    public WHB04BClient(ILogger<WHB04BClient> logger, ILogger<HidCommunication> hidLogger)
+    public WHB04BClient(ILogger<WHB04BClient> logger, ILoggerFactory loggerFactory)
     {
         _logger = logger;
-        _hidDevice = new HidCommunication(hidLogger);
+        _hidDevice = new HidCommunication(loggerFactory.CreateLogger<HidCommunication>());
         
         if (!_hidDevice.Initialize())
         {

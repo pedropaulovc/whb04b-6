@@ -8,7 +8,7 @@ namespace WHB04B6Controller;
 /// Replaces vendor PHB04B.dll with direct USB HID communication
 /// Based on LinuxCNC xhc-whb04b-6 implementation
 /// </summary>
-public class HidCommunication : IDisposable
+internal class HidCommunication : IDisposable
 {
     private const int VendorId = 0x10ce;
     private const int ProductId = 0xeb93;
