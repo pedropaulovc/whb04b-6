@@ -53,7 +53,30 @@ internal class HidCommunication : IDisposable
                 return false;
             }
             
-            _device = targetDevices.First();
+            // Try each device to find one that supports output
+            HidDevice? outputDevice = null;
+            foreach (var device in targetDevices)
+            {
+                Console.WriteLine($"DEBUG: Checking device path: {device.DevicePath}");
+                try
+                {
+                    Console.WriteLine($"DEBUG: Max input: {device.GetMaxInputReportLength()}, Max output: {device.GetMaxOutputReportLength()}, Max feature: {device.GetMaxFeatureReportLength()}");
+                    
+                    // Look for a device that supports output or feature reports
+                    if (device.GetMaxOutputReportLength() > 0 || device.GetMaxFeatureReportLength() > 0)
+                    {
+                        Console.WriteLine($"DEBUG: Found output-capable device!");
+                        outputDevice = device;
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"DEBUG: Error checking device capabilities: {ex.Message}");
+                }
+            }
+            
+            _device = outputDevice ?? targetDevices.First(); // Fallback to first device
             Console.WriteLine($"DEBUG: Selected device path: {_device.DevicePath}");
             
             // Try to get device info before opening
