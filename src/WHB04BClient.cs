@@ -27,6 +27,8 @@ public class WHB04BClient : IDisposable
     /// </summary>
     public WHB04BClient()
     {
+        // Debug output will be visible in console
+        
         _hidDevice = new HidCommunication();
         
         if (!_hidDevice.Initialize())

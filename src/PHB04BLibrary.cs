@@ -28,14 +28,21 @@ internal class HidCommunication : IDisposable
             _device = DeviceList.Local.GetHidDevices(VendorId, ProductId).FirstOrDefault();
             if (_device == null)
             {
+                Console.WriteLine("DEBUG: WHB04B-6 device not found");
                 return false;
             }
+            
+            Console.WriteLine($"DEBUG: Found device: {_device.GetFriendlyName()}");
+            Console.WriteLine($"DEBUG: Max input report length: {_device.GetMaxInputReportLength()}");
+            Console.WriteLine($"DEBUG: Max output report length: {_device.GetMaxOutputReportLength()}");
+            Console.WriteLine($"DEBUG: Max feature report length: {_device.GetMaxFeatureReportLength()}");
             
             _stream = _device.Open();
             return _stream != null;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"DEBUG: Initialize failed: {ex.Message}");
             return false;
         }
     }
@@ -77,8 +84,7 @@ internal class HidCommunication : IDisposable
     
     /// <summary>
     /// Send display data to the pendant
-    /// Uses HID SetFeature reports to send data (similar to libusb_control_transfer)
-    /// Data is sent in 8-byte blocks (including report ID 0x06)
+    /// Try multiple approaches to match LinuxCNC libusb_control_transfer behavior
     /// </summary>
     /// <param name="data">Data to send (21 bytes total, sent as 3 blocks of 7 bytes each)</param>
     /// <returns>True if successful</returns>
@@ -86,12 +92,13 @@ internal class HidCommunication : IDisposable
     {
         if (_stream == null || data.Length != 21) // Must be exactly 21 bytes (3 blocks of 7 bytes)
         {
+            Console.WriteLine($"DEBUG: SendOutput: Invalid parameters - stream={_stream != null}, data.Length={data.Length}");
             return false;
         }
         
         try
         {
-            // Send data in 7-byte chunks using SetFeature (similar to libusb control transfer)
+            // Send data in 7-byte chunks - try both SetFeature and Write approaches
             for (int i = 0; i < data.Length; i += 7)
             {
                 var block = new byte[OutputBlockSize]; // 8 bytes total
@@ -100,15 +107,36 @@ internal class HidCommunication : IDisposable
                 int bytesToCopy = Math.Min(7, data.Length - i);
                 Array.Copy(data, i, block, 1, bytesToCopy);
                 
-                // Use SetFeature instead of Write - this matches libusb_control_transfer behavior
-                _stream.SetFeature(block);
+                Console.WriteLine($"DEBUG: Sending block {i/7 + 1}: {BitConverter.ToString(block)}");
+                
+                // Try SetFeature first (HID control transfer)
+                try
+                {
+                    _stream.SetFeature(block);
+                    Console.WriteLine($"DEBUG: SetFeature succeeded for block {i/7 + 1}");
+                }
+                catch (Exception setFeatureEx)
+                {
+                    Console.WriteLine($"DEBUG: SetFeature failed: {setFeatureEx.Message}, trying Write...");
+                    
+                    // Fallback to Write
+                    try
+                    {
+                        _stream.Write(block);
+                        Console.WriteLine($"DEBUG: Write succeeded for block {i/7 + 1}");
+                    }
+                    catch (Exception writeEx)
+                    {
+                        Console.WriteLine($"DEBUG: Write also failed: {writeEx.Message}");
+                        throw;
+                    }
+                }
             }
             return true;
         }
         catch (Exception ex)
         {
-            // Log the exception for debugging
-            System.Diagnostics.Debug.WriteLine($"SendOutput failed: {ex.Message}");
+            Console.WriteLine($"DEBUG: SendOutput failed: {ex.Message}");
             return false;
         }
     }
