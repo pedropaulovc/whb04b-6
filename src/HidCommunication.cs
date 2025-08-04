@@ -30,7 +30,8 @@ internal class HidCommunication : IDisposable
     /// <summary>
     /// Initialize and open the HID device
     /// </summary>
-    public bool Initialize()
+    /// <exception cref="PHB04BException">Thrown when device initialization fails</exception>
+    public void Initialize()
     {
         try
         {
@@ -59,7 +60,7 @@ internal class HidCommunication : IDisposable
                         _logger.LogDebug("  VID: 0x{VendorId:X4}, PID: 0x{ProductId:X4}, Path: <error reading path>", dev.VendorID, dev.ProductID);
                     }
                 }
-                return false;
+                throw new PHB04BException(100, "WHB04B-6 device not found");
             }
             
             // Find separate input and output devices
@@ -97,13 +98,13 @@ internal class HidCommunication : IDisposable
             if (_inputDevice == null)
             {
                 _logger.LogError("No input device found!");
-                return false;
+                throw new PHB04BException(100, "No input device found");
             }
             
             if (_outputDevice == null)
             {
                 _logger.LogError("No output device found!");
-                return false;
+                throw new PHB04BException(100, "No output device found");
             }
             
             _logger.LogInformation("Input device path: {InputDevicePath}", _inputDevice.DevicePath);
@@ -114,7 +115,7 @@ internal class HidCommunication : IDisposable
             if (_inputStream == null)
             {
                 _logger.LogError("Failed to open input device");
-                return false;
+                throw new PHB04BException(100, "Failed to open input device");
             }
             _logger.LogInformation("Input device opened successfully");
             
@@ -123,16 +124,18 @@ internal class HidCommunication : IDisposable
             if (_outputStream == null)
             {
                 _logger.LogError("Failed to open output device");
-                return false;
+                throw new PHB04BException(100, "Failed to open output device");
             }
             _logger.LogInformation("Output device opened successfully");
-            
-            return true;
+        }
+        catch (PHB04BException)
+        {
+            throw; // Re-throw PHB04BException as-is
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Initialize failed");
-            return false;
+            throw new PHB04BException(103, $"Device initialization failed: {ex.Message}", ex);
         }
     }
     

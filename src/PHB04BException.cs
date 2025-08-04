@@ -7,7 +7,12 @@ public class PHB04BException : Exception
 {
     public int ErrorCode { get; }
 
-    private PHB04BException(int errorCode, string message) : base(message)
+    internal PHB04BException(int errorCode, string message) : base(message)
+    {
+        ErrorCode = errorCode;
+    }
+
+    internal PHB04BException(int errorCode, string message, Exception innerException) : base(message, innerException)
     {
         ErrorCode = errorCode;
     }
