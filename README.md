@@ -164,6 +164,17 @@ The console application will:
 - ✅ Mapped all button key codes to match LinuxCNC implementation exactly
 - ✅ Cross-platform compatibility (no longer Windows-only)
 
+## Acknowledgments
+
+This implementation is based on the excellent reverse engineering work done by the LinuxCNC community for the XHC WHB04B-6 pendant. Special thanks to:
+
+- **Raoul Rubien** (github.com/rubienr) - Original author of the LinuxCNC xhc-whb04b-6 component
+- **alkabal_free.fr** - Updated the LinuxCNC component for LinuxCNC 2020
+- **LinuxCNC Project** - For the open-source CNC control software and community
+- **Machinekit contributors** - Listed at https://github.com/machinekit/machinekit/graphs/contributors
+
+The USB protocol documentation, button mappings, and HID communication patterns used in this .NET implementation are derived from their reverse engineering efforts documented in the LinuxCNC xhc-whb04b-6 component.
+
 ## License
 
 See LICENSE file for details.
