@@ -48,6 +48,118 @@ internal class HidCommunication : IDisposable
             throw new HidCommunicationException(103, $"Device initialization failed: {ex.Message}", ex);
         }
     }
+    
+    /// <summary>
+    /// Close the HID device connections
+    /// </summary>
+    public void Close()
+    {
+        _inputStream?.Close();
+        _inputStream = null;
+        _inputDevice = null;
+        
+        _outputStream?.Close();
+        _outputStream = null;
+        _outputDevice = null;
+    }
+    
+    /// <summary>
+    /// Read input data from the pendant
+    /// Expected packet structure: [0x04, random, button1, button2, feedDial, axisDial, jogDelta, checksum]
+    /// </summary>
+    /// <param name="buffer">Buffer to store received data (must be at least 8 bytes)</param>
+    /// <returns>Number of bytes read, or -1 on error</returns>
+    public int ReadInput(byte[] buffer)
+    {
+        if (_inputStream == null || buffer.Length < InputPacketSize)
+        {
+            return -1;
+        }
+        
+        try
+        {
+            _inputStream.ReadTimeout = 100; // 100ms timeout
+            var result = _inputStream.Read(buffer, 0, InputPacketSize);
+            return result;
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+    
+    /// <summary>
+    /// Send display data to the pendant
+    /// Try multiple approaches to match LinuxCNC libusb_control_transfer behavior
+    /// </summary>
+    /// <param name="data">Data to send (21 bytes total, sent as 3 blocks of 7 bytes each)</param>
+    /// <returns>True if successful</returns>
+    public bool SendOutput(byte[] data)
+    {
+        if (_outputStream == null || data.Length != 21) // Must be exactly 21 bytes (3 blocks of 7 bytes)
+        {
+            _logger.LogWarning("SendOutput: Invalid parameters - stream={StreamExists}, data.Length={DataLength}", _outputStream != null, data.Length);
+            return false;
+        }
+        
+        try
+        {
+            // Send data in 7-byte chunks - try both SetFeature and Write approaches
+            for (int i = 0; i < data.Length; i += 7)
+            {
+                var block = new byte[OutputBlockSize]; // 8 bytes total
+                block[0] = 0x06; // Report ID
+                
+                int bytesToCopy = Math.Min(7, data.Length - i);
+                Array.Copy(data, i, block, 1, bytesToCopy);
+                
+                _logger.LogTrace("Sending block {BlockNumber}: {BlockData}", i/7 + 1, BitConverter.ToString(block));
+                
+                // Try SetFeature first (HID control transfer)
+                try
+                {
+                    _outputStream.SetFeature(block);
+                    _logger.LogTrace("SetFeature succeeded for block {BlockNumber}", i/7 + 1);
+                }
+                catch (Exception setFeatureEx)
+                {
+                    _logger.LogDebug(setFeatureEx, "SetFeature failed for block {BlockNumber}, trying Write...", i/7 + 1);
+                    
+                    // Fallback to Write
+                    try
+                    {
+                        _outputStream.Write(block);
+                        _logger.LogTrace("Write succeeded for block {BlockNumber}", i/7 + 1);
+                    }
+                    catch (Exception writeEx)
+                    {
+                        _logger.LogError(writeEx, "Write also failed for block {BlockNumber}", i/7 + 1);
+                        throw;
+                    }
+                }
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SendOutput failed");
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Check if devices are connected and ready
+    /// </summary>
+    public bool IsConnected => _inputStream != null && _outputStream != null;
+    
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            Close();
+            _disposed = true;
+        }
+    }
 
     /// <summary>
     /// Discover and identify input/output HID devices
@@ -213,118 +325,6 @@ internal class HidCommunication : IDisposable
         }
         
         _logger.LogInformation("Output device opened successfully");
-    }
-    
-    /// <summary>
-    /// Close the HID device connections
-    /// </summary>
-    public void Close()
-    {
-        _inputStream?.Close();
-        _inputStream = null;
-        _inputDevice = null;
-        
-        _outputStream?.Close();
-        _outputStream = null;
-        _outputDevice = null;
-    }
-    
-    /// <summary>
-    /// Read input data from the pendant
-    /// Expected packet structure: [0x04, random, button1, button2, feedDial, axisDial, jogDelta, checksum]
-    /// </summary>
-    /// <param name="buffer">Buffer to store received data (must be at least 8 bytes)</param>
-    /// <returns>Number of bytes read, or -1 on error</returns>
-    public int ReadInput(byte[] buffer)
-    {
-        if (_inputStream == null || buffer.Length < InputPacketSize)
-        {
-            return -1;
-        }
-        
-        try
-        {
-            _inputStream.ReadTimeout = 100; // 100ms timeout
-            var result = _inputStream.Read(buffer, 0, InputPacketSize);
-            return result;
-        }
-        catch
-        {
-            return -1;
-        }
-    }
-    
-    /// <summary>
-    /// Send display data to the pendant
-    /// Try multiple approaches to match LinuxCNC libusb_control_transfer behavior
-    /// </summary>
-    /// <param name="data">Data to send (21 bytes total, sent as 3 blocks of 7 bytes each)</param>
-    /// <returns>True if successful</returns>
-    public bool SendOutput(byte[] data)
-    {
-        if (_outputStream == null || data.Length != 21) // Must be exactly 21 bytes (3 blocks of 7 bytes)
-        {
-            _logger.LogWarning("SendOutput: Invalid parameters - stream={StreamExists}, data.Length={DataLength}", _outputStream != null, data.Length);
-            return false;
-        }
-        
-        try
-        {
-            // Send data in 7-byte chunks - try both SetFeature and Write approaches
-            for (int i = 0; i < data.Length; i += 7)
-            {
-                var block = new byte[OutputBlockSize]; // 8 bytes total
-                block[0] = 0x06; // Report ID
-                
-                int bytesToCopy = Math.Min(7, data.Length - i);
-                Array.Copy(data, i, block, 1, bytesToCopy);
-                
-                _logger.LogTrace("Sending block {BlockNumber}: {BlockData}", i/7 + 1, BitConverter.ToString(block));
-                
-                // Try SetFeature first (HID control transfer)
-                try
-                {
-                    _outputStream.SetFeature(block);
-                    _logger.LogTrace("SetFeature succeeded for block {BlockNumber}", i/7 + 1);
-                }
-                catch (Exception setFeatureEx)
-                {
-                    _logger.LogDebug(setFeatureEx, "SetFeature failed for block {BlockNumber}, trying Write...", i/7 + 1);
-                    
-                    // Fallback to Write
-                    try
-                    {
-                        _outputStream.Write(block);
-                        _logger.LogTrace("Write succeeded for block {BlockNumber}", i/7 + 1);
-                    }
-                    catch (Exception writeEx)
-                    {
-                        _logger.LogError(writeEx, "Write also failed for block {BlockNumber}", i/7 + 1);
-                        throw;
-                    }
-                }
-            }
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "SendOutput failed");
-            return false;
-        }
-    }
-    
-    /// <summary>
-    /// Check if devices are connected and ready
-    /// </summary>
-    public bool IsConnected => _inputStream != null && _outputStream != null;
-    
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            Close();
-            _disposed = true;
-        }
     }
 }
 
