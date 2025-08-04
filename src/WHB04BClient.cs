@@ -1,4 +1,5 @@
 using System.Timers;
+using Microsoft.Extensions.Logging;
 
 namespace WHB04B6Controller;
 
@@ -15,6 +16,7 @@ public class WHB04BClient : IDisposable
     private byte[] _previousData = [];
     private readonly object _lockObject = new();
     private HidCommunication? _hidDevice;
+    private readonly ILogger<WHB04BClient> _logger;
 
     /// <summary>
     /// Event raised when pendant data changes
@@ -25,11 +27,10 @@ public class WHB04BClient : IDisposable
     /// Initializes a new instance of the WHB04BClient class
     /// Automatically opens the HID device and starts polling
     /// </summary>
-    public WHB04BClient()
+    public WHB04BClient(ILogger<WHB04BClient> logger, ILogger<HidCommunication> hidLogger)
     {
-        // Debug output will be visible in console
-        
-        _hidDevice = new HidCommunication();
+        _logger = logger;
+        _hidDevice = new HidCommunication(hidLogger);
         
         if (!_hidDevice.Initialize())
         {
