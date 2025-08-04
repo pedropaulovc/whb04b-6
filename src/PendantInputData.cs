@@ -52,6 +52,8 @@ public class PendantInputData : EventArgs
 {
     public byte[] RawData { get; }
     public DateTime Timestamp { get; }
+    public byte RightDialRawValue => RawData.Length > 4 ? RawData[4] : (byte)0;
+    public byte LeftDialRawValue => RawData.Length > 5 ? RawData[5] : (byte)0;
 
     public KeyPressed FirstKeyPressed => ParseKeyPressed(RawData.Length > 2 ? RawData[2] : (byte)0);
     public KeyPressed SecondKeyPressed => ParseKeyPressed(RawData.Length > 3 ? RawData[3] : (byte)0);
@@ -106,7 +108,8 @@ public class PendantInputData : EventArgs
             0x10 => DialPosition.Position4, // 1/30%
             0x1A => DialPosition.Position5, // 60%
             0x1B => DialPosition.Position6, // 100%
-            0x1C => DialPosition.Position7, // Lead (corrected from 0x9B to 0x1C)
+            0x1C => DialPosition.Position7, // Lead
+            0x9B => DialPosition.Position7, // Lead (alternative value)
             _ => DialPosition.Unknown
         };
     }
