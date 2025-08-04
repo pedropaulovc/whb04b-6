@@ -104,7 +104,7 @@ public class WHB04BClient : IDisposable
     /// </summary>
     private void StartPolling()
     {
-        _pollingTimer = new System.Timers.Timer(100); // 100ms interval
+        _pollingTimer = new System.Timers.Timer(50); // 50ms interval for responsive input
         _pollingTimer.Elapsed += OnPollingTimerElapsed;
         _pollingTimer.AutoReset = true;
         _pollingTimer.Start();
@@ -130,19 +130,60 @@ public class WHB04BClient : IDisposable
                     _previousData = newData;
                     DataChanged?.Invoke(this, new PendantInputData(newData));
                 }
+                else if (newData.Length >= 8 && newData[0] == 0x04)
+                {
+                    // Debug: log filtered packets occasionally
+                    if (DateTime.Now.Millisecond % 500 < 50) // Log ~10% of filtered packets
+                    {
+                        _logger.LogTrace("Filtered packet: {PacketData}", BitConverter.ToString(newData));
+                    }
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // Silently ignore polling errors to prevent timer crashes
+                _logger.LogDebug(ex, "Polling error");
             }
         }
     }
 
     /// <summary>
-    /// Checks if the new data is different from the previous data
+    /// Checks if the new data is different from the previous data and is valid
     /// </summary>
     private bool HasDataChanged(byte[] newData)
     {
+        // Check if packet is valid (header should be 0x04)
+        if (newData.Length >= 8 && newData[0] != 0x04)
+        {
+            return false; // Invalid packet header
+        }
+        
+        // Don't trigger events for packets with all Unknown dial positions
+        // This filters out transitional/garbage packets
+        if (newData.Length >= 8)
+        {
+            var rightDialValue = newData[4];
+            var leftDialValue = newData[5];
+            
+            // Check if both dials are unknown (not in valid ranges)
+            bool rightDialValid = rightDialValue switch
+            {
+                0x0D or 0x0E or 0x0F or 0x10 or 0x1A or 0x1B or 0x1C => true,
+                _ => false
+            };
+            
+            bool leftDialValid = leftDialValue switch
+            {
+                0x06 or 0x11 or 0x12 or 0x13 or 0x14 or 0x15 or 0x16 => true,
+                _ => false
+            };
+            
+            // If both dials are invalid, and no buttons are pressed, skip this packet
+            if (!rightDialValid && !leftDialValid && newData[2] == 0 && newData[3] == 0 && newData[6] == 0)
+            {
+                return false;
+            }
+        }
+        
         return !newData.SequenceEqual(_previousData);
     }
 
