@@ -23,13 +23,32 @@ public enum CoordinateSystem
 /// <summary>
 /// Represents data to be displayed on the pendant
 /// </summary>
-public class PendantDisplayData(JogMode jogMode, CoordinateSystem coordinateSystem, decimal number1, decimal number2, decimal number3)
+/// <param name="jogMode">The jog mode to display</param>
+/// <param name="coordinateSystem">The coordinate system (XYZ or X1Y1Z1)</param>
+/// <param name="number1">First axis value (typically X coordinate)</param>
+/// <param name="number2">Second axis value (typically Y coordinate)</param>
+/// <param name="number3">Third axis value (typically Z coordinate)</param>
+/// <param name="feedRate">Feed rate to display (0-65535). Displayed as "F:xxx" on pendant. Typically represents feed override percentage (0-200%) or actual feed rate.</param>
+/// <param name="spindleRate">Spindle rate to display (0-65535). Displayed as "S:xxxx" on pendant. Typically represents spindle speed in RPM or spindle override percentage.</param>
+public class PendantDisplayData(JogMode jogMode, CoordinateSystem coordinateSystem, decimal number1, decimal number2, decimal number3, ushort feedRate = 0, ushort spindleRate = 0)
 {
     public decimal Number1 { get; } = ValidateNumber(number1, nameof(number1));
     public decimal Number2 { get; } = ValidateNumber(number2, nameof(number2));
     public decimal Number3 { get; } = ValidateNumber(number3, nameof(number3));
     public JogMode JogMode { get; } = jogMode;
     public CoordinateSystem CoordinateSystem { get; } = coordinateSystem;
+    
+    /// <summary>
+    /// Feed rate value (0-65535). Displayed as "F:xxx" in the pendant's top-right corner.
+    /// Typically represents feed override percentage (0-200%) or actual feed rate in units/min.
+    /// </summary>
+    public ushort FeedRate { get; } = feedRate;
+    
+    /// <summary>
+    /// Spindle rate value (0-65535). Displayed as "S:xxxx" in the pendant's top-right corner.
+    /// Typically represents spindle speed in RPM or spindle override percentage.
+    /// </summary>
+    public ushort SpindleRate { get; } = spindleRate;
 
     public byte[] RawData => GenerateRawData();
 
@@ -116,13 +135,13 @@ public class PendantDisplayData(JogMode jogMode, CoordinateSystem coordinateSyst
         Array.Copy(number2Bytes, 0, result, 8, 4);
         Array.Copy(number3Bytes, 0, result, 12, 4);
         
-        // Feed rate (2 bytes) - set to 0 for now
-        result[16] = 0;
-        result[17] = 0;
+        // Feed rate (2 bytes) - little-endian 16-bit unsigned
+        result[16] = (byte)(FeedRate & 0xFF);
+        result[17] = (byte)((FeedRate >> 8) & 0xFF);
         
-        // Spindle rate (2 bytes) - set to 0 for now  
-        result[18] = 0;
-        result[19] = 0;
+        // Spindle rate (2 bytes) - little-endian 16-bit unsigned
+        result[18] = (byte)(SpindleRate & 0xFF);
+        result[19] = (byte)((SpindleRate >> 8) & 0xFF);
         
         // Padding byte for 21-byte alignment
         result[20] = 0;

@@ -62,9 +62,11 @@ controller.DataChanged += (sender, e) =>
 var displayData = new PendantDisplayData(
     JogMode.Continuous,
     CoordinateSystem.XYZ,
-    x: 123.4567m,
-    y: -98.7654m,
-    z: 0.1234m
+    number1: 123.4567m,  // X coordinate
+    number2: -98.7654m,  // Y coordinate
+    number3: 0.1234m,    // Z coordinate
+    feedRate: 120,       // 120% feed rate (displayed as "F:120")
+    spindleRate: 1200    // 1200 RPM (displayed as "S:1200")
 );
 
 controller.SendDisplayData(displayData);
@@ -163,6 +165,7 @@ The console application will:
 - ✅ Updated output packet generation to create 21-byte HID compatible format
 - ✅ Mapped all button key codes to match LinuxCNC implementation exactly
 - ✅ Cross-platform compatibility (no longer Windows-only)
+- ✅ Added support for feed rate and spindle speed display (F:xxx and S:xxxx)
 
 ## Acknowledgments
 

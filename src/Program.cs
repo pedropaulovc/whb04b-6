@@ -65,18 +65,24 @@ try
             var currentJogMode = jogModes[cycleCount % jogModes.Length];
             var currentCoordinateSystem = coordinateSystems[(cycleCount / 2) % coordinateSystems.Length];
 
+            // Simulate feed and spindle rates
+            ushort feedRate = (ushort)((cycleCount * 10) % 200); // 0-200% feed rate
+            ushort spindleRate = (ushort)((cycleCount * 100) % 2000); // 0-2000 RPM spindle speed
+            
             // Create display data
             var displayData = new PendantDisplayData(
                 currentJogMode,
                 currentCoordinateSystem,
                 x,
                 y,
-                z
+                z,
+                feedRate,
+                spindleRate
             );
 
             // Send to pendant
             controller.SendDisplayData(displayData);
-            Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] X={x,+10:F4}, Y={y,+10:F4}, Z={z,+10:F4} | JogMode: {currentJogMode,-11} | CoordSys: {currentCoordinateSystem,-9} | Success: true");
+            Console.WriteLine($"[SENT    ] [{DateTime.Now:HH:mm:ss.fff}] X={x,+10:F4}, Y={y,+10:F4}, Z={z,+10:F4} | JogMode: {currentJogMode,-11} | CoordSys: {currentCoordinateSystem,-9} | F:{feedRate,3}% | S:{spindleRate,4} | Success: true");
             
             cycleCount++;
         }
