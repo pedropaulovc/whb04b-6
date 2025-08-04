@@ -1,4 +1,5 @@
 using HidSharp;
+using Microsoft.Extensions.Logging;
 
 namespace WHB04B6Controller;
 
@@ -7,18 +8,24 @@ namespace WHB04B6Controller;
 /// Replaces vendor PHB04B.dll with direct USB HID communication
 /// Based on LinuxCNC xhc-whb04b-6 implementation
 /// </summary>
-internal class HidCommunication : IDisposable
+public class HidCommunication : IDisposable
 {
     private const int VendorId = 0x10ce;
     private const int ProductId = 0xeb93;
     private const int InputPacketSize = 8;
     private const int OutputBlockSize = 8; // HidSharp includes report ID in the buffer
     
+    private readonly ILogger<HidCommunication> _logger;
     private HidDevice? _inputDevice;
     private HidDevice? _outputDevice;
     private HidStream? _inputStream;
     private HidStream? _outputStream;
     private bool _disposed = false;
+    
+    public HidCommunication(ILogger<HidCommunication> logger)
+    {
+        _logger = logger;
+    }
     
     /// <summary>
     /// Initialize and open the HID device
@@ -27,29 +34,29 @@ internal class HidCommunication : IDisposable
     {
         try
         {
-            Console.WriteLine("DEBUG: Searching for HID devices...");
+            _logger.LogDebug("Searching for HID devices...");
             
             // First, list all HID devices to see what's available
             var allDevices = DeviceList.Local.GetHidDevices().ToList();
-            Console.WriteLine($"DEBUG: Found {allDevices.Count} total HID devices");
+            _logger.LogDebug("Found {DeviceCount} total HID devices", allDevices.Count);
             
             // Look for our specific device
             var targetDevices = allDevices.Where(d => d.VendorID == VendorId && d.ProductID == ProductId).ToList();
-            Console.WriteLine($"DEBUG: Found {targetDevices.Count} matching WHB04B-6 devices");
+            _logger.LogDebug("Found {MatchingDeviceCount} matching WHB04B-6 devices", targetDevices.Count);
             
             if (targetDevices.Count == 0)
             {
-                Console.WriteLine("DEBUG: WHB04B-6 device not found");
-                Console.WriteLine("DEBUG: Available devices:");
+                _logger.LogWarning("WHB04B-6 device not found");
+                _logger.LogDebug("Available devices:");
                 foreach (var dev in allDevices.Take(10)) // Show first 10 devices
                 {
                     try
                     {
-                        Console.WriteLine($"DEBUG:   VID: 0x{dev.VendorID:X4}, PID: 0x{dev.ProductID:X4}, Path: {dev.DevicePath}");
+                        _logger.LogDebug("  VID: 0x{VendorId:X4}, PID: 0x{ProductId:X4}, Path: {DevicePath}", dev.VendorID, dev.ProductID, dev.DevicePath);
                     }
                     catch
                     {
-                        Console.WriteLine($"DEBUG:   VID: 0x{dev.VendorID:X4}, PID: 0x{dev.ProductID:X4}, Path: <error reading path>");
+                        _logger.LogDebug("  VID: 0x{VendorId:X4}, PID: 0x{ProductId:X4}, Path: <error reading path>", dev.VendorID, dev.ProductID);
                     }
                 }
                 return false;
@@ -58,78 +65,73 @@ internal class HidCommunication : IDisposable
             // Find separate input and output devices
             foreach (var device in targetDevices)
             {
-                Console.WriteLine($"DEBUG: Checking device path: {device.DevicePath}");
+                _logger.LogDebug("Checking device path: {DevicePath}", device.DevicePath);
                 try
                 {
                     int maxInput = device.GetMaxInputReportLength();
                     int maxOutput = device.GetMaxOutputReportLength();
                     int maxFeature = device.GetMaxFeatureReportLength();
                     
-                    Console.WriteLine($"DEBUG: Max input: {maxInput}, Max output: {maxOutput}, Max feature: {maxFeature}");
+                    _logger.LogDebug("Max input: {MaxInput}, Max output: {MaxOutput}, Max feature: {MaxFeature}", maxInput, maxOutput, maxFeature);
                     
                     // Look for input device (has input capability)
                     if (maxInput > 0 && _inputDevice == null)
                     {
-                        Console.WriteLine($"DEBUG: Found input-capable device!");
+                        _logger.LogDebug("Found input-capable device!");
                         _inputDevice = device;
                     }
                     
                     // Look for output device (has output or feature capability)
                     if ((maxOutput > 0 || maxFeature > 0) && _outputDevice == null)
                     {
-                        Console.WriteLine($"DEBUG: Found output-capable device!");
+                        _logger.LogDebug("Found output-capable device!");
                         _outputDevice = device;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"DEBUG: Error checking device capabilities: {ex.Message}");
+                    _logger.LogWarning(ex, "Error checking device capabilities");
                 }
             }
             
             if (_inputDevice == null)
             {
-                Console.WriteLine($"DEBUG: No input device found!");
+                _logger.LogError("No input device found!");
                 return false;
             }
             
             if (_outputDevice == null)
             {
-                Console.WriteLine($"DEBUG: No output device found!");
+                _logger.LogError("No output device found!");
                 return false;
             }
             
-            Console.WriteLine($"DEBUG: Input device path: {_inputDevice.DevicePath}");
-            Console.WriteLine($"DEBUG: Output device path: {_outputDevice.DevicePath}");
+            _logger.LogInformation("Input device path: {InputDevicePath}", _inputDevice.DevicePath);
+            _logger.LogInformation("Output device path: {OutputDevicePath}", _outputDevice.DevicePath);
             
-            Console.WriteLine("DEBUG: Attempting to open input device...");
+            _logger.LogDebug("Attempting to open input device...");
             _inputStream = _inputDevice.Open();
             if (_inputStream == null)
             {
-                Console.WriteLine("DEBUG: Failed to open input device");
+                _logger.LogError("Failed to open input device");
                 return false;
             }
-            Console.WriteLine("DEBUG: Input device opened successfully");
+            _logger.LogInformation("Input device opened successfully");
             
-            Console.WriteLine("DEBUG: Attempting to open output device...");
+            _logger.LogDebug("Attempting to open output device...");
             _outputStream = _outputDevice.Open();
             if (_outputStream == null)
             {
-                Console.WriteLine("DEBUG: Failed to open output device");
+                _logger.LogError("Failed to open output device");
                 return false;
             }
-            Console.WriteLine("DEBUG: Output device opened successfully");
+            _logger.LogInformation("Output device opened successfully");
             
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"DEBUG: Initialize failed: {ex.Message}");
-            Console.WriteLine($"DEBUG: Exception type: {ex.GetType().Name}");
-            if (ex.InnerException != null)
-            {
-                Console.WriteLine($"DEBUG: Inner exception: {ex.InnerException.Message}");
-            }
+            _logger.LogError(ex, "Initialize failed");
             return false;
         }
     }
@@ -183,7 +185,7 @@ internal class HidCommunication : IDisposable
     {
         if (_outputStream == null || data.Length != 21) // Must be exactly 21 bytes (3 blocks of 7 bytes)
         {
-            Console.WriteLine($"DEBUG: SendOutput: Invalid parameters - stream={_outputStream != null}, data.Length={data.Length}");
+            _logger.LogWarning("SendOutput: Invalid parameters - stream={StreamExists}, data.Length={DataLength}", _outputStream != null, data.Length);
             return false;
         }
         
@@ -198,27 +200,27 @@ internal class HidCommunication : IDisposable
                 int bytesToCopy = Math.Min(7, data.Length - i);
                 Array.Copy(data, i, block, 1, bytesToCopy);
                 
-                Console.WriteLine($"DEBUG: Sending block {i/7 + 1}: {BitConverter.ToString(block)}");
+                _logger.LogTrace("Sending block {BlockNumber}: {BlockData}", i/7 + 1, BitConverter.ToString(block));
                 
                 // Try SetFeature first (HID control transfer)
                 try
                 {
                     _outputStream.SetFeature(block);
-                    Console.WriteLine($"DEBUG: SetFeature succeeded for block {i/7 + 1}");
+                    _logger.LogTrace("SetFeature succeeded for block {BlockNumber}", i/7 + 1);
                 }
                 catch (Exception setFeatureEx)
                 {
-                    Console.WriteLine($"DEBUG: SetFeature failed: {setFeatureEx.Message}, trying Write...");
+                    _logger.LogDebug(setFeatureEx, "SetFeature failed for block {BlockNumber}, trying Write...", i/7 + 1);
                     
                     // Fallback to Write
                     try
                     {
                         _outputStream.Write(block);
-                        Console.WriteLine($"DEBUG: Write succeeded for block {i/7 + 1}");
+                        _logger.LogTrace("Write succeeded for block {BlockNumber}", i/7 + 1);
                     }
                     catch (Exception writeEx)
                     {
-                        Console.WriteLine($"DEBUG: Write also failed: {writeEx.Message}");
+                        _logger.LogError(writeEx, "Write also failed for block {BlockNumber}", i/7 + 1);
                         throw;
                     }
                 }
@@ -227,7 +229,7 @@ internal class HidCommunication : IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"DEBUG: SendOutput failed: {ex.Message}");
+            _logger.LogError(ex, "SendOutput failed");
             return false;
         }
     }

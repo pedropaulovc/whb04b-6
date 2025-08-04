@@ -1,7 +1,19 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WHB04B6Controller;
 
 Console.WriteLine("WHB04B-6 USB CNC Remote Control Pendant Controller");
 Console.WriteLine("==================================================");
+
+// Set up dependency injection and logging
+var services = new ServiceCollection()
+    .AddLogging(builder =>
+    {
+        builder.AddConsole();
+        builder.SetMinimumLevel(LogLevel.Information); // Change to LogLevel.Debug for more verbose output
+    })
+    .AddSingleton<WHB04BClient>()
+    .BuildServiceProvider();
 
 // Set up Ctrl+C handler
 var cancellationTokenSource = new CancellationTokenSource();
@@ -14,7 +26,7 @@ Console.CancelKeyPress += (sender, e) =>
 
 try
 {
-    using var controller = new WHB04BClient();
+    using var controller = services.GetRequiredService<WHB04BClient>();
     Console.WriteLine("Controller initialized successfully.");
     Console.WriteLine("Listening for pendant data changes and sending display data...");
     Console.WriteLine("Press Ctrl+C to exit.");
