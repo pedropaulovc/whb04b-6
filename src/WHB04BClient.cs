@@ -27,15 +27,13 @@ public class WHB04BClient : IDisposable
     /// Initializes a new instance of the WHB04BClient class
     /// Automatically opens the HID device and starts polling
     /// </summary>
+    /// <exception cref="PHB04BException">Thrown when device initialization fails</exception>
     public WHB04BClient(ILogger<WHB04BClient> logger, ILoggerFactory loggerFactory)
     {
         _logger = logger;
         _hidDevice = new HidCommunication(loggerFactory.CreateLogger<HidCommunication>());
         
-        if (!_hidDevice.Initialize())
-        {
-            throw new InvalidOperationException("Could not initialize HID device. Ensure WHB04B-6 pendant is connected.");
-        }
+        _hidDevice.Initialize();
         
         _initialized = true;
         StartPolling();
