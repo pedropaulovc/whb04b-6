@@ -35,7 +35,10 @@ try
     // Subscribe to data change events
     controller.DataChanged += (sender, e) =>
     {
-        Console.WriteLine($"[RECEIVED] [{e.Timestamp:HH:mm:ss.fff}] Key1: {e.FirstKeyPressed,-12} | Key2: {e.SecondKeyPressed,-13} | RightDial: {e.RightDial,-9} | LeftDial: {e.LeftDial,-9} | Jog: {e.JogCountOffset,3}");
+        var rightDialDisplay = e.RightDial == DialPosition.Unknown ? $"Unknown(0x{e.RightDialRawValue:X2})" : e.RightDial.ToString();
+        var leftDialDisplay = e.LeftDial == DialPosition.Unknown ? $"Unknown(0x{e.LeftDialRawValue:X2})" : e.LeftDial.ToString();
+        
+        Console.WriteLine($"[RECEIVED] [{e.Timestamp:HH:mm:ss.fff}] Key1: {e.FirstKeyPressed,-12} | Key2: {e.SecondKeyPressed,-13} | RightDial: {rightDialDisplay,-15} | LeftDial: {leftDialDisplay,-15} | Jog: {e.JogCountOffset,3}");
     };
 
     // Send initial zero state
