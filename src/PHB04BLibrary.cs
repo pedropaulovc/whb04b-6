@@ -14,8 +14,10 @@ internal class HidCommunication : IDisposable
     private const int InputPacketSize = 8;
     private const int OutputBlockSize = 8; // HidSharp includes report ID in the buffer
     
-    private HidDevice? _device;
-    private HidStream? _stream;
+    private HidDevice? _inputDevice;
+    private HidDevice? _outputDevice;
+    private HidStream? _inputStream;
+    private HidStream? _outputStream;
     private bool _disposed = false;
     
     /// <summary>
@@ -53,21 +55,30 @@ internal class HidCommunication : IDisposable
                 return false;
             }
             
-            // Try each device to find one that supports output
-            HidDevice? outputDevice = null;
+            // Find separate input and output devices
             foreach (var device in targetDevices)
             {
                 Console.WriteLine($"DEBUG: Checking device path: {device.DevicePath}");
                 try
                 {
-                    Console.WriteLine($"DEBUG: Max input: {device.GetMaxInputReportLength()}, Max output: {device.GetMaxOutputReportLength()}, Max feature: {device.GetMaxFeatureReportLength()}");
+                    int maxInput = device.GetMaxInputReportLength();
+                    int maxOutput = device.GetMaxOutputReportLength();
+                    int maxFeature = device.GetMaxFeatureReportLength();
                     
-                    // Look for a device that supports output or feature reports
-                    if (device.GetMaxOutputReportLength() > 0 || device.GetMaxFeatureReportLength() > 0)
+                    Console.WriteLine($"DEBUG: Max input: {maxInput}, Max output: {maxOutput}, Max feature: {maxFeature}");
+                    
+                    // Look for input device (has input capability)
+                    if (maxInput > 0 && _inputDevice == null)
+                    {
+                        Console.WriteLine($"DEBUG: Found input-capable device!");
+                        _inputDevice = device;
+                    }
+                    
+                    // Look for output device (has output or feature capability)
+                    if ((maxOutput > 0 || maxFeature > 0) && _outputDevice == null)
                     {
                         Console.WriteLine($"DEBUG: Found output-capable device!");
-                        outputDevice = device;
-                        break;
+                        _outputDevice = device;
                     }
                 }
                 catch (Exception ex)
@@ -76,46 +87,40 @@ internal class HidCommunication : IDisposable
                 }
             }
             
-            _device = outputDevice ?? targetDevices.First(); // Fallback to first device
-            Console.WriteLine($"DEBUG: Selected device path: {_device.DevicePath}");
-            
-            // Try to get device info before opening
-            try
+            if (_inputDevice == null)
             {
-                Console.WriteLine($"DEBUG: Device VID: 0x{_device.VendorID:X4}, PID: 0x{_device.ProductID:X4}");
-                // Console.WriteLine($"DEBUG: Device can open: {_device.CanOpen}"); // Property not available in this version
-                Console.WriteLine($"DEBUG: Device friendly name: {_device.GetFriendlyName()}");
-            }
-            catch (Exception infoEx)
-            {
-                Console.WriteLine($"DEBUG: Error getting device info: {infoEx.Message}");
-                Console.WriteLine($"DEBUG: This might be a permissions issue. Try running as administrator.");
-            }
-            
-            // Try to get report lengths before opening
-            try
-            {
-                Console.WriteLine($"DEBUG: Max input report length: {_device.GetMaxInputReportLength()}");
-                Console.WriteLine($"DEBUG: Max output report length: {_device.GetMaxOutputReportLength()}");
-                Console.WriteLine($"DEBUG: Max feature report length: {_device.GetMaxFeatureReportLength()}");
-            }
-            catch (Exception reportEx)
-            {
-                Console.WriteLine($"DEBUG: Error getting report lengths: {reportEx.Message}");
-            }
-            
-            Console.WriteLine("DEBUG: Attempting to open device...");
-            _stream = _device.Open();
-            if (_stream != null)
-            {
-                Console.WriteLine("DEBUG: Device opened successfully");
-                return true;
-            }
-            else
-            {
-                Console.WriteLine("DEBUG: Failed to open device (returned null)");
+                Console.WriteLine($"DEBUG: No input device found!");
                 return false;
             }
+            
+            if (_outputDevice == null)
+            {
+                Console.WriteLine($"DEBUG: No output device found!");
+                return false;
+            }
+            
+            Console.WriteLine($"DEBUG: Input device path: {_inputDevice.DevicePath}");
+            Console.WriteLine($"DEBUG: Output device path: {_outputDevice.DevicePath}");
+            
+            Console.WriteLine("DEBUG: Attempting to open input device...");
+            _inputStream = _inputDevice.Open();
+            if (_inputStream == null)
+            {
+                Console.WriteLine("DEBUG: Failed to open input device");
+                return false;
+            }
+            Console.WriteLine("DEBUG: Input device opened successfully");
+            
+            Console.WriteLine("DEBUG: Attempting to open output device...");
+            _outputStream = _outputDevice.Open();
+            if (_outputStream == null)
+            {
+                Console.WriteLine("DEBUG: Failed to open output device");
+                return false;
+            }
+            Console.WriteLine("DEBUG: Output device opened successfully");
+            
+            return true;
         }
         catch (Exception ex)
         {
@@ -130,13 +135,17 @@ internal class HidCommunication : IDisposable
     }
     
     /// <summary>
-    /// Close the HID device connection
+    /// Close the HID device connections
     /// </summary>
     public void Close()
     {
-        _stream?.Close();
-        _stream = null;
-        _device = null;
+        _inputStream?.Close();
+        _inputStream = null;
+        _inputDevice = null;
+        
+        _outputStream?.Close();
+        _outputStream = null;
+        _outputDevice = null;
     }
     
     /// <summary>
@@ -147,15 +156,15 @@ internal class HidCommunication : IDisposable
     /// <returns>Number of bytes read, or -1 on error</returns>
     public int ReadInput(byte[] buffer)
     {
-        if (_stream == null || buffer.Length < InputPacketSize)
+        if (_inputStream == null || buffer.Length < InputPacketSize)
         {
             return -1;
         }
         
         try
         {
-            _stream.ReadTimeout = 100; // 100ms timeout
-            var result = _stream.Read(buffer, 0, InputPacketSize);
+            _inputStream.ReadTimeout = 100; // 100ms timeout
+            var result = _inputStream.Read(buffer, 0, InputPacketSize);
             return result;
         }
         catch
@@ -172,9 +181,9 @@ internal class HidCommunication : IDisposable
     /// <returns>True if successful</returns>
     public bool SendOutput(byte[] data)
     {
-        if (_stream == null || data.Length != 21) // Must be exactly 21 bytes (3 blocks of 7 bytes)
+        if (_outputStream == null || data.Length != 21) // Must be exactly 21 bytes (3 blocks of 7 bytes)
         {
-            Console.WriteLine($"DEBUG: SendOutput: Invalid parameters - stream={_stream != null}, data.Length={data.Length}");
+            Console.WriteLine($"DEBUG: SendOutput: Invalid parameters - stream={_outputStream != null}, data.Length={data.Length}");
             return false;
         }
         
@@ -194,7 +203,7 @@ internal class HidCommunication : IDisposable
                 // Try SetFeature first (HID control transfer)
                 try
                 {
-                    _stream.SetFeature(block);
+                    _outputStream.SetFeature(block);
                     Console.WriteLine($"DEBUG: SetFeature succeeded for block {i/7 + 1}");
                 }
                 catch (Exception setFeatureEx)
@@ -204,7 +213,7 @@ internal class HidCommunication : IDisposable
                     // Fallback to Write
                     try
                     {
-                        _stream.Write(block);
+                        _outputStream.Write(block);
                         Console.WriteLine($"DEBUG: Write succeeded for block {i/7 + 1}");
                     }
                     catch (Exception writeEx)
@@ -224,9 +233,9 @@ internal class HidCommunication : IDisposable
     }
     
     /// <summary>
-    /// Check if device is connected and ready
+    /// Check if devices are connected and ready
     /// </summary>
-    public bool IsConnected => _stream != null;
+    public bool IsConnected => _inputStream != null && _outputStream != null;
     
     public void Dispose()
     {
