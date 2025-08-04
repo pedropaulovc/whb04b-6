@@ -104,7 +104,7 @@ public class WHB04BClient : IDisposable
     /// </summary>
     private void StartPolling()
     {
-        _pollingTimer = new System.Timers.Timer(50); // 50ms interval for responsive input
+        _pollingTimer = new System.Timers.Timer(100); // 100ms interval
         _pollingTimer.Elapsed += OnPollingTimerElapsed;
         _pollingTimer.AutoReset = true;
         _pollingTimer.Start();
@@ -132,11 +132,8 @@ public class WHB04BClient : IDisposable
                 }
                 else if (newData.Length >= 8 && newData[0] == 0x04)
                 {
-                    // Debug: log filtered packets occasionally
-                    if (DateTime.Now.Millisecond % 500 < 50) // Log ~10% of filtered packets
-                    {
-                        _logger.LogTrace("Filtered packet: {PacketData}", BitConverter.ToString(newData));
-                    }
+                    // Debug: log all filtered packets
+                    _logger.LogTrace("Filtered packet: {PacketData}", BitConverter.ToString(newData));
                 }
             }
             catch (Exception ex)
