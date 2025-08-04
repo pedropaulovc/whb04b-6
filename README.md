@@ -178,6 +178,8 @@ This implementation is based on the excellent reverse engineering work done by t
 
 The USB protocol documentation, button mappings, and HID communication patterns used in this .NET implementation are derived from their reverse engineering efforts documented in the LinuxCNC xhc-whb04b-6 component.
 
+Source code for the LinuxCNC xhc-whb04b-6 component: https://github.com/LinuxCNC/linuxcnc/tree/master/src/hal/user_comps/xhc-whb04b-6
+
 ## License
 
 See LICENSE file for details.
