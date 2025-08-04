@@ -27,7 +27,7 @@ public class WHB04BClient : IDisposable
     /// Initializes a new instance of the WHB04BClient class
     /// Automatically opens the HID device and starts polling
     /// </summary>
-    /// <exception cref="PHB04BException">Thrown when device initialization fails</exception>
+    /// <exception cref="HidCommunicationException">Thrown when device initialization fails</exception>
     public WHB04BClient(ILogger<WHB04BClient> logger, ILoggerFactory loggerFactory)
     {
         _logger = logger;

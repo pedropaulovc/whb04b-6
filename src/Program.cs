@@ -101,7 +101,7 @@ try
     timer.Dispose();
     Console.WriteLine("Closing controller...");
 }
-catch (PHB04BException ex)
+catch (HidCommunicationException ex)
 {
     Console.WriteLine($"Device Error (Code {ex.ErrorCode}): {ex.Message}");
 }

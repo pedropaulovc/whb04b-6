@@ -30,113 +30,189 @@ internal class HidCommunication : IDisposable
     /// <summary>
     /// Initialize and open the HID device
     /// </summary>
-    /// <exception cref="PHB04BException">Thrown when device initialization fails</exception>
+    /// <exception cref="HidCommunicationException">Thrown when device initialization fails</exception>
     public void Initialize()
     {
         try
         {
-            _logger.LogDebug("Searching for HID devices...");
-            
-            // First, list all HID devices to see what's available
-            var allDevices = DeviceList.Local.GetHidDevices().ToList();
-            _logger.LogDebug("Found {DeviceCount} total HID devices", allDevices.Count);
-            
-            // Look for our specific device
-            var targetDevices = allDevices.Where(d => d.VendorID == VendorId && d.ProductID == ProductId).ToList();
-            _logger.LogDebug("Found {MatchingDeviceCount} matching WHB04B-6 devices", targetDevices.Count);
-            
-            if (targetDevices.Count == 0)
-            {
-                _logger.LogWarning("WHB04B-6 device not found");
-                _logger.LogDebug("Available devices:");
-                foreach (var dev in allDevices.Take(10)) // Show first 10 devices
-                {
-                    try
-                    {
-                        _logger.LogDebug("  VID: 0x{VendorId:X4}, PID: 0x{ProductId:X4}, Path: {DevicePath}", dev.VendorID, dev.ProductID, dev.DevicePath);
-                    }
-                    catch
-                    {
-                        _logger.LogDebug("  VID: 0x{VendorId:X4}, PID: 0x{ProductId:X4}, Path: <error reading path>", dev.VendorID, dev.ProductID);
-                    }
-                }
-                throw new PHB04BException(100, "WHB04B-6 device not found");
-            }
-            
-            // Find separate input and output devices
-            foreach (var device in targetDevices)
-            {
-                _logger.LogDebug("Checking device path: {DevicePath}", device.DevicePath);
-                try
-                {
-                    int maxInput = device.GetMaxInputReportLength();
-                    int maxOutput = device.GetMaxOutputReportLength();
-                    int maxFeature = device.GetMaxFeatureReportLength();
-                    
-                    _logger.LogDebug("Max input: {MaxInput}, Max output: {MaxOutput}, Max feature: {MaxFeature}", maxInput, maxOutput, maxFeature);
-                    
-                    // Look for input device (has input capability)
-                    if (maxInput > 0 && _inputDevice == null)
-                    {
-                        _logger.LogDebug("Found input-capable device!");
-                        _inputDevice = device;
-                    }
-                    
-                    // Look for output device (has output or feature capability)
-                    if ((maxOutput > 0 || maxFeature > 0) && _outputDevice == null)
-                    {
-                        _logger.LogDebug("Found output-capable device!");
-                        _outputDevice = device;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error checking device capabilities");
-                }
-            }
-            
-            if (_inputDevice == null)
-            {
-                _logger.LogError("No input device found!");
-                throw new PHB04BException(100, "No input device found");
-            }
-            
-            if (_outputDevice == null)
-            {
-                _logger.LogError("No output device found!");
-                throw new PHB04BException(100, "No output device found");
-            }
-            
-            _logger.LogInformation("Input device path: {InputDevicePath}", _inputDevice.DevicePath);
-            _logger.LogInformation("Output device path: {OutputDevicePath}", _outputDevice.DevicePath);
-            
-            _logger.LogDebug("Attempting to open input device...");
-            _inputStream = _inputDevice.Open();
-            if (_inputStream == null)
-            {
-                _logger.LogError("Failed to open input device");
-                throw new PHB04BException(100, "Failed to open input device");
-            }
-            _logger.LogInformation("Input device opened successfully");
-            
-            _logger.LogDebug("Attempting to open output device...");
-            _outputStream = _outputDevice.Open();
-            if (_outputStream == null)
-            {
-                _logger.LogError("Failed to open output device");
-                throw new PHB04BException(100, "Failed to open output device");
-            }
-            _logger.LogInformation("Output device opened successfully");
+            DiscoverDevices();
+            OpenDevices();
         }
-        catch (PHB04BException)
+        catch (HidCommunicationException)
         {
-            throw; // Re-throw PHB04BException as-is
+            throw; // Re-throw HidCommunicationException as-is
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Initialize failed");
-            throw new PHB04BException(103, $"Device initialization failed: {ex.Message}", ex);
+            throw new HidCommunicationException(103, $"Device initialization failed: {ex.Message}", ex);
         }
+    }
+
+    /// <summary>
+    /// Discover and identify input/output HID devices
+    /// </summary>
+    private void DiscoverDevices()
+    {
+        _logger.LogDebug("Searching for HID devices...");
+        
+        var allDevices = DeviceList.Local.GetHidDevices().ToList();
+        _logger.LogDebug("Found {DeviceCount} total HID devices", allDevices.Count);
+        
+        var targetDevices = allDevices.Where(d => d.VendorID == VendorId && d.ProductID == ProductId).ToList();
+        _logger.LogDebug("Found {MatchingDeviceCount} matching WHB04B-6 devices", targetDevices.Count);
+        
+        if (targetDevices.Count == 0)
+        {
+            LogAvailableDevices(allDevices);
+            throw new HidCommunicationException(100, "WHB04B-6 device not found");
+        }
+        
+        FindInputOutputDevices(targetDevices);
+        ValidateDevicesFound();
+    }
+
+    /// <summary>
+    /// Log available devices for debugging purposes
+    /// </summary>
+    private void LogAvailableDevices(IList<HidDevice> allDevices)
+    {
+        _logger.LogWarning("WHB04B-6 device not found");
+        _logger.LogDebug("Available devices:");
+        
+        foreach (var dev in allDevices.Take(10))
+        {
+            try
+            {
+                _logger.LogDebug("  VID: 0x{VendorId:X4}, PID: 0x{ProductId:X4}, Path: {DevicePath}", 
+                    dev.VendorID, dev.ProductID, dev.DevicePath);
+            }
+            catch
+            {
+                _logger.LogDebug("  VID: 0x{VendorId:X4}, PID: 0x{ProductId:X4}, Path: <error reading path>", 
+                    dev.VendorID, dev.ProductID);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Find separate input and output devices from target devices
+    /// </summary>
+    private void FindInputOutputDevices(IList<HidDevice> targetDevices)
+    {
+        foreach (var device in targetDevices)
+        {
+            _logger.LogDebug("Checking device path: {DevicePath}", device.DevicePath);
+            
+            try
+            {
+                var capabilities = GetDeviceCapabilities(device);
+                AssignDeviceRoles(device, capabilities);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error checking device capabilities");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get device capabilities (input, output, feature report lengths)
+    /// </summary>
+    private (int MaxInput, int MaxOutput, int MaxFeature) GetDeviceCapabilities(HidDevice device)
+    {
+        int maxInput = device.GetMaxInputReportLength();
+        int maxOutput = device.GetMaxOutputReportLength();
+        int maxFeature = device.GetMaxFeatureReportLength();
+        
+        _logger.LogDebug("Max input: {MaxInput}, Max output: {MaxOutput}, Max feature: {MaxFeature}", 
+            maxInput, maxOutput, maxFeature);
+            
+        return (maxInput, maxOutput, maxFeature);
+    }
+
+    /// <summary>
+    /// Assign device roles based on capabilities
+    /// </summary>
+    private void AssignDeviceRoles(HidDevice device, (int MaxInput, int MaxOutput, int MaxFeature) capabilities)
+    {
+        // Look for input device (has input capability)
+        if (capabilities.MaxInput > 0 && _inputDevice == null)
+        {
+            _logger.LogDebug("Found input-capable device!");
+            _inputDevice = device;
+        }
+        
+        // Look for output device (has output or feature capability)
+        if ((capabilities.MaxOutput > 0 || capabilities.MaxFeature > 0) && _outputDevice == null)
+        {
+            _logger.LogDebug("Found output-capable device!");
+            _outputDevice = device;
+        }
+    }
+
+    /// <summary>
+    /// Validate that both required devices were found
+    /// </summary>
+    private void ValidateDevicesFound()
+    {
+        if (_inputDevice == null)
+        {
+            _logger.LogError("No input device found!");
+            throw new HidCommunicationException(100, "No input device found");
+        }
+        
+        if (_outputDevice == null)
+        {
+            _logger.LogError("No output device found!");
+            throw new HidCommunicationException(100, "No output device found");
+        }
+        
+        _logger.LogInformation("Input device path: {InputDevicePath}", _inputDevice.DevicePath);
+        _logger.LogInformation("Output device path: {OutputDevicePath}", _outputDevice.DevicePath);
+    }
+
+    /// <summary>
+    /// Open the discovered input and output devices
+    /// </summary>
+    private void OpenDevices()
+    {
+        OpenInputDevice();
+        OpenOutputDevice();
+    }
+
+    /// <summary>
+    /// Open the input device stream
+    /// </summary>
+    private void OpenInputDevice()
+    {
+        _logger.LogDebug("Attempting to open input device...");
+        _inputStream = _inputDevice!.Open();
+        
+        if (_inputStream == null)
+        {
+            _logger.LogError("Failed to open input device");
+            throw new HidCommunicationException(100, "Failed to open input device");
+        }
+        
+        _logger.LogInformation("Input device opened successfully");
+    }
+
+    /// <summary>
+    /// Open the output device stream
+    /// </summary>
+    private void OpenOutputDevice()
+    {
+        _logger.LogDebug("Attempting to open output device...");
+        _outputStream = _outputDevice!.Open();
+        
+        if (_outputStream == null)
+        {
+            _logger.LogError("Failed to open output device");
+            throw new HidCommunicationException(100, "Failed to open output device");
+        }
+        
+        _logger.LogInformation("Output device opened successfully");
     }
     
     /// <summary>
