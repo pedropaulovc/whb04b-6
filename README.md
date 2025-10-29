@@ -158,15 +158,6 @@ The console application will:
 - .NET 8.0
 - HidSharp NuGet package (cross-platform HID library)
 
-## Changes Made
-
-- ✅ Replaced `PHB04B.dll` dependency with direct HID communication using HidSharp
-- ✅ Updated input packet parsing to handle 8-byte HID packets (vs 5-byte vendor format)  
-- ✅ Updated output packet generation to create 21-byte HID compatible format
-- ✅ Mapped all button key codes to match LinuxCNC implementation exactly
-- ✅ Cross-platform compatibility (no longer Windows-only)
-- ✅ Added support for feed rate and spindle speed display (F:xxx and S:xxxx)
-
 ## Acknowledgments
 
 This implementation is based on the excellent reverse engineering work done by the LinuxCNC community for the XHC WHB04B-6 pendant. Special thanks to:
