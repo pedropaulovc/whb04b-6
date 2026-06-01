@@ -13,10 +13,10 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 8.0.x
         
@@ -39,7 +39,7 @@ jobs:
         zip -r whb04b-6-${{ github.ref_name }}-win-x64.zip .
         
     - name: Create Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: |
           src/bin/Release/net8.0/linux-x64/publish/whb04b-6-${{ github.ref_name }}-linux-x64.zip
